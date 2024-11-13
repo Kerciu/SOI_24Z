@@ -85,13 +85,13 @@ int countDescendants( int proc_nr, int N )
     return descendants;
 }
 
-void maxNDescendants( int* maxDesc, pid_t* who, int N )
+void maxNDescendants( int* max_desc, pid_t* who, int N )
 {
     int proc_nr;
     int descendants;
 
-    *maxDesc = -1;
-    *who = -1;
+    int max_desc_found = -1;
+    pid_t found = -1;
 
     for (proc_nr = 0; proc_nr < NR_PROCS; ++proc_nr)
     {
@@ -99,13 +99,16 @@ void maxNDescendants( int* maxDesc, pid_t* who, int N )
         {
             descendants = countDescendants(proc_nr, N);
 
-            if (descendants > maxDesc)
+            if (descendants > max_desc)
             {
-                *maxDesc = descendants;
-                *who = mproc[proc_nr].mp_pid;
+                max_desc_found = descendants;
+                found = mproc[proc_nr].mp_pid;
             }
         }
     }
+
+    *max_desc = max_desc_found;
+    *who = found;
 }
 
 PUBLIC int do_maxNDescendants()
