@@ -27,12 +27,13 @@ liczbą potomków dla tego procesu.
    - liczymy potomków potomków potomków
 
     używamy do tego kolejki
+    tworzymy dwie tablice, queue i depth
 
 */
 
 int countDescendants( int proc_nr, int N )
 {
-    int descendants;
+    int descendants = 0;
     int i;
 
     int queue[NR_PROCS];
@@ -60,7 +61,7 @@ int countDescendants( int proc_nr, int N )
         for (i = 0 ; i < NR_PROCS ; ++i)
         {
             /* if it is actually descendant */
-            if ((mproc[i].mp_flags & IN_USE) && proc_nr != i && mproc[i].mp_parent == proc_nr )
+            if ((mproc[i].mp_flags & IN_USE) && proc_nr != i && mproc[i].mp_parent == current_proc)
             {
                 /* increase descendants num */
                 ++descendants;
@@ -99,7 +100,7 @@ void maxNDescendants( int* max_desc, pid_t* who, int N )
         {
             descendants = countDescendants(proc_nr, N);
 
-            if (descendants > max_desc)
+            if (descendants > *max_desc)
             {
                 max_desc_found = descendants;
                 found = mproc[proc_nr].mp_pid;
