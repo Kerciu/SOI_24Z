@@ -5,12 +5,16 @@
 
 typedef struct mm_in {
     int m1_i1;
-    int m2_i2;
+    int m1_i2;
 } mm_in;
 
 struct mm_in mm_in;
 
 /*
+
+========================================================================
+
+Zadanie 2
 
 Zwrócić pid procesu mającego najdłuższą ścieżkę potomków prowadzącą do procesu nie
 mającego dzieci, zwrócić długość tej ścieżki. Pominąć proces o podanym w parametrze
@@ -18,6 +22,8 @@ identyfikatorze pid
 
 Pomysł na rozwiązanie:
   - stos
+
+========================================================================
 
 */
 
@@ -156,6 +162,74 @@ PUBLIC int do_whoLongestPathToChildless()
 
 /*
 
+========================================================================
+
+Zadanie 2
+
+Zwrócić pid procesu mającego największą liczbę potomków (dzieci, wnuków …) mieszczącą się
+w przedziale <A, B> (A i B podawane jako parametry), zwrócić liczbą potomków dla tego
+procesu.
+
+========================================================================
+
+*/
+
+int func() { return 0; }
+
+void maxDescendantsInBounds( int* max_desc, pid_t* who, int A, int B )
+{
+    int proc_nr;
+    int descendants;
+
+    int max_desc_found = -1;
+    pid_t found = -1;
+
+    for (proc_nr = 0; proc_nr < NR_PROCS; ++proc_nr)
+    {
+        if (mproc[proc_nr].mp_flags & IN_USE)
+        {
+            descendants = func();
+
+            if (descendants > max_desc_found)
+            {
+                max_desc_found = descendants;
+                found = mproc[proc_nr].mp_pid;
+            }
+        }
+    }
+
+    *max_desc = max_desc_found;
+    *who = found;
+}
+
+PUBLIC int do_maxDescendantsInBounds()
+{
+    int maxDesc = -1;
+    pid_t who = -1;
+    int A = mm_in.m1_i1;
+    int B = mm_in.m1_i2;
+
+    maxDescendantsInBounds(&maxDesc, &who, A, B);
+
+    return maxDesc;
+}
+
+PUBLIC int do_whoMaxDescendantsInBounds()
+{
+    int maxDesc = -1;
+    pid_t who = -1;
+    int A = mm_in.m1_i1;
+    int B = mm_in.m1_i2;
+
+    maxDescendantsInBounds(&maxDesc, &who, A, B);
+
+    return who;
+}
+
+/*
+
+========================================================================
+
 Zadanie 7
 
 Zwrócić pid procesu mającego największą liczbę potomków na kolejnych N (N podawane jako
@@ -172,6 +246,8 @@ liczbą potomków dla tego procesu.
 
     używamy do tego kolejki
     tworzymy dwie tablice, queue i depth
+
+========================================================================
 
 */
 
