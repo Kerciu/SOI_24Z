@@ -59,6 +59,7 @@ int countDescendants( int proc_nr, int N )
 
         for (i = 0 ; i < NR_PROCS ; ++i)
         {
+            /* if it is actually descendant */
             if ((mproc[i].mp_flags & IN_USE) && proc_nr != i && mproc[i].mp_parent == proc_nr )
             {
                 /* increase descendants num */
@@ -84,9 +85,27 @@ int countDescendants( int proc_nr, int N )
     return descendants;
 }
 
-int maxNDescendants( int* maxDesc, pid_t* who, int N )
+void maxNDescendants( int* maxDesc, pid_t* who, int N )
 {
+    int proc_nr;
+    int descendants;
 
+    *maxDesc = -1;
+    *who = -1;
+
+    for (proc_nr = 0; proc_nr < NR_PROCS; ++proc_nr)
+    {
+        if (mproc[proc_nr].mp_flags & IN_USE)
+        {
+            descendants = countDescendants(proc_nr, N);
+
+            if (descendants > maxDesc)
+            {
+                *maxDesc = descendants;
+                *who = mproc[proc_nr].mp_pid;
+            }
+        }
+    }
 }
 
 PUBLIC int do_maxNDescendants()
