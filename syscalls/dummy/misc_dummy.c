@@ -12,6 +12,63 @@ struct mm_in mm_in;
 
 /*
 
+Zwrócić pid procesu mającego najdłuższą ścieżkę potomków prowadzącą do procesu nie
+mającego dzieci, zwrócić długość tej ścieżki. Pominąć proces o podanym w parametrze
+identyfikatorze pid
+
+*/
+
+void longestPathToChildless( int* longestPath, pid_t* who, pid_t excluded )
+{
+
+    int proc_nr;
+    int curr_path;
+
+    int maxPath = -1;
+    int found = -1;
+
+    for (proc_nr = 0; proc_nr < NR_PROCS; ++proc_nr)
+    {
+        if (mproc[proc_nr].mp_flags & IN_USE)
+        {
+            curr_path = determinePathToChildless(proc_nr);
+
+            if (curr_path > maxPath)
+            {
+                maxPath = curr_path;
+                found = mproc[proc_nr].mp_pid;
+            }
+        }
+    }
+
+    *longestPath = maxPath;
+    *who = found;
+}
+
+PUBLIC int do_longestPathToChildless()
+{
+    int longestPath = -1;
+    pid_t who = -1;
+    pid_t exluded = mm_in.m1_i1;
+
+    longestPathToChildless(&longestPath, &who, exluded);
+
+    return longestPath;
+}
+
+PUBLIC int do_whoLongestPathToChildless()
+{
+    int longestPath = -1;
+    pid_t who = -1;
+    pid_t exluded = mm_in.m1_i1;
+
+    longestPathToChildless(&longestPath, &who, exluded);
+
+    return who;
+}
+
+/*
+
 Zadanie 7
 
 Zwrócić pid procesu mającego największą liczbę potomków na kolejnych N (N podawane jako
@@ -100,7 +157,7 @@ void maxNDescendants( int* max_desc, pid_t* who, int N )
         {
             descendants = countDescendants(proc_nr, N);
 
-            if (descendants > *max_desc)
+            if (descendants > max_desc_found)
             {
                 max_desc_found = descendants;
                 found = mproc[proc_nr].mp_pid;
