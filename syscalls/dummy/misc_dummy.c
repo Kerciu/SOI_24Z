@@ -21,62 +21,61 @@ Pomysł na rozwiązanie:
 
 */
 
-void pushToStack( int stack[], int depth[], int* top, int proc_nr, int proc_depth )
+void pushToStack( int stack[], int depth[], int* top, int procNr, int procDepth )
 {
-    stack[*top] = proc_nr;
-    depth[*top] = proc_depth;
+    stack[*top] = procNr;
+    depth[*top] = procDepth;
     (*top)++;
 }
 
-void popFromStack( int stack[], int depth[], int* top, int* proc_nr, int* proc_depth )
+void popFromStack( int stack[], int depth[], int* top, int* procNr, int* procDepth )
 {
     (*top)--;
-    *proc_nr = stack[*top];
-    *proc_depth = depth[*top];
+    *procNr = stack[*top];
+    *procDepth = depth[*top];
 }
 
-int isChild( int parent_proc, int candidate )
+int isChild( int parentProc, int candidate )
 {
-    return (mproc[candidate].mp_flags & IN_USE) && mproc[candidate].mp_parent == parent_proc;
+    return (mproc[candidate].mp_flags & IN_USE) && mproc[candidate].mp_parent == parentProc;
 }
 
-int procHasChildren( int current_proc )
+int procHasChildren( int currentProc )
 {
-    int proc_nr;
-    for (proc_nr = 0; proc_nr < NR_PROCS; ++proc_nr)
+    int procNr;
+    for (procNr = 0; procNr < NR_PROCS; ++procNr)
     {
-        if (isChild(current_proc, proc_nr))
+        if (isChild(currentProc, procNr))
             return 1;
     }
 
     return 0;
 }
 
-void pushChildrenToStack( int stack[], int depth[], int* top, int current_proc, int proc_depth)
+void pushChildrenToStack( int stack[], int depth[], int* top, int currentProc, int procDepth)
 {
     int i;
     for (i = 0; i < NR_PROCS; ++i)
     {
-        if (isChild(current_proc, i))
+        if (isChild(currentProc, i))
         {
-            pushToStack(stack, depth, top, i, proc_depth + 1);
+            pushToStack(stack, depth, top, i, procDepth + 1);
         }
     }
 }
 
 int determinePathToChildless( int start_proc, pid_t excluded )
 {
-    int max_depth = -1;
+    int maxDepth = -1;
 
     int stack[NR_PROCS];
     int depth[NR_PROCS];
     int top = 0;
 
-    int proc_nr;
-    int has_children;
+    int procNr;
 
-    int current_proc;
-    int current_depth;
+    int currentProc;
+    int currentDepth;
 
     pushToStack(stack, depth, &top, start_proc, 1);
 
@@ -84,46 +83,47 @@ int determinePathToChildless( int start_proc, pid_t excluded )
     {
         --top;
 
-        popFromStack(stack, depth, &top, &current_proc, &current_depth);
+        popFromStack(stack, depth, &top, &currentProc, &currentDepth);
 
-        if (mproc[current_proc].mp_pid == excluded || !(mproc[current_proc].mp_flags & IN_USE))
+        if (mproc[currentProc].mp_pid == excluded || !(mproc[currentProc].mp_flags & IN_USE))
             continue;
 
-        if (!procHasChildren(current_proc))
+        if (!procHasChildren(currentProc))
         {
             /* update max depth */
 
-            max_depth = current_depth;
+            maxDepth = currentDepth;
 
         } else {
+
             /* push children to the stack */
 
-            pushChildrenToStack(stack, depth, &top, current_proc, current_depth);
+            pushChildrenToStack(stack, depth, &top, currentProc, currentDepth);
         }
     }
 
-    return max_depth;
+    return maxDepth;
 }
 
 void longestPathToChildless( int* longestPath, pid_t* who, pid_t excluded )
 {
 
-    int proc_nr;
-    int curr_depth;
+    int procNr;
+    int currentDepth;
 
     int maxPath = -1;
     int found = -1;
 
-    for (proc_nr = 0; proc_nr < NR_PROCS; ++proc_nr)
+    for (procNr = 0; procNr < NR_PROCS; ++procNr)
     {
-        if (mproc[proc_nr].mp_flags & IN_USE)
+        if (mproc[procNr].mp_flags & IN_USE)
         {
-            curr_depth = determinePathToChildless(proc_nr, excluded);
+            currentDepth = determinePathToChildless(procNr, excluded);
 
-            if (curr_depth > maxPath)
+            if (currentDepth > maxPath)
             {
-                maxPath = curr_depth;
-                found = mproc[proc_nr].mp_pid;
+                maxPath = currentDepth;
+                found = mproc[procNr].mp_pid;
             }
         }
     }
