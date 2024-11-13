@@ -20,6 +20,70 @@ liczbą potomków dla tego procesu.
 
 */
 
+/* Propozycja rozwiązania:
+
+   - liczymy potomków
+   - liczymy potomków potomków
+   - liczymy potomków potomków potomków
+
+    używamy do tego kolejki
+
+*/
+
+int countDescendants( int proc_nr, int N )
+{
+    int descendants;
+    int i;
+
+    int queue[NR_PROCS];
+    int depth[NR_PROCS];
+
+    int queue_start = 0;          /* front of the queue */
+    int queue_end = 0;            /* back of the queue */
+
+    int current_proc;
+    int current_depth;
+
+    /* initialize queue */
+    queue[queue_end] = proc_nr;
+    depth[queue_end] = 1;
+    ++queue_end;
+
+    while (queue_start < queue_end)
+    {
+        current_proc = queue[queue_start];
+        current_depth = depth[queue_start];
+
+        /* shift the queue front */
+        ++queue_start;
+
+        for (i = 0 ; i < NR_PROCS ; ++i)
+        {
+            if ((mproc[i].mp_flags & IN_USE) && proc_nr != i && mproc[i].mp_parent == proc_nr )
+            {
+                /* increase descendants num */
+                ++descendants;
+
+                /* do not exceed N depth*/
+                if (current_depth <= N)
+                {
+                    /*
+                        if not exceeded add another child to the queue
+                        and increase depth
+                    */
+
+                    queue[queue_end] = i;
+                    depth[queue_end] = current_depth + 1;
+                    queue_end++;
+
+                }
+            }
+        }
+    }
+
+    return descendants;
+}
+
 int maxNDescendants( int* maxDesc, pid_t* who, int N )
 {
 
