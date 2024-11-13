@@ -16,7 +16,78 @@ Zwrócić pid procesu mającego najdłuższą ścieżkę potomków prowadzącą 
 mającego dzieci, zwrócić długość tej ścieżki. Pominąć proces o podanym w parametrze
 identyfikatorze pid
 
+Pomysł na rozwiązanie:
+  - stos
+
 */
+
+void pushToStack( int stack[], int depth[], int* top, int proc_nr, int proc_depth )
+{
+    stack[*top] = proc_nr;
+    depth[*top] = proc_depth;
+    (*top)++;
+}
+
+void popFromStack( int stack[], int depth[], int* top, int* proc_nr, int* proc_depth )
+{
+    (*top)--;
+    *proc_nr = stack[*top];
+    *proc_depth = stack[*top];
+}
+
+int isChild( int parent_proc, int candidate )
+{
+    return (mproc[candidate].mp_flags & IN_USE) && mproc[candidate].mp_parent == parent_proc;
+}
+
+void pushChildrenToStack( int stack[], int depth[], int* top, int current_proc, int proc_depth)
+{
+    int i;
+    for (i = 0; i < NR_PROCS; ++i)
+    {
+        if (isChild(current_proc, i))
+        {
+            pushToStack(stack, depth, top, i, proc_depth);
+        }
+    }
+}
+
+int determinePathToChildless( int start_proc, pid_t excluded )
+{
+    int max_depth = -1;
+
+    int stack[NR_PROCS];
+    int depth[NR_PROCS];
+    int top = 0;
+
+    int proc_nr;
+    int has_children;
+
+    int current_proc;
+    int current_depth;
+
+    pushToStack(stack, depth, &top, start_proc, 1);
+
+    while (top > 0)
+    {
+        --top;
+
+        popFromStack(stack, depth, &top, &current_proc, &current_depth);
+
+        if (mproc[current_proc].mp_pid == excluded || !(mproc[current_proc].mp_flags & IN_USE))
+            continue;
+
+        if (!procHasChildren(current_proc))
+        {
+            /* update max_path */
+        } else {
+            /* push children to the stack */
+
+            pushChildrenToStack(stack, depth, &top, current_proc, current_depth);
+        }
+    }
+
+}
 
 void longestPathToChildless( int* longestPath, pid_t* who, pid_t excluded )
 {
@@ -31,7 +102,7 @@ void longestPathToChildless( int* longestPath, pid_t* who, pid_t excluded )
     {
         if (mproc[proc_nr].mp_flags & IN_USE)
         {
-            curr_path = determinePathToChildless(proc_nr);
+            curr_path = determinePathToChildless(proc_nr, excluded);
 
             if (curr_path > maxPath)
             {
