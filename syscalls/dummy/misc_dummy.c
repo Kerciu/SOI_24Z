@@ -164,17 +164,58 @@ PUBLIC int do_whoLongestPathToChildless()
 
 ========================================================================
 
-Zadanie 2
+Zadanie 4
 
 Zwrócić pid procesu mającego największą liczbę potomków (dzieci, wnuków …) mieszczącą się
 w przedziale <A, B> (A i B podawane jako parametry), zwrócić liczbą potomków dla tego
 procesu.
 
+Pomysł na rozwiązanie:
+- kolejka, liczymy wszystkich możliwych potomków procesu,
+  a przy sprawdzeniu w funkcji przypisującej maksa odrzucamy,
+  jesli nie jest w przedziale
+
 ========================================================================
 
 */
 
-int func() { return 0; }
+int countAllDescendants( int proc_nr, int A_bound, int B_bound )
+{
+    int descendants = 0;
+    int i;
+
+    int queue[NR_PROCS];
+    int depth[NR_PROCS];
+
+    int queue_start = 0;
+    int queue_end = 0;
+
+    int current_proc;
+    int current_depth;
+
+    /* queue initialization */
+    queue[queue_end] = proc_nr;
+    depth[queue_end++] = 1;
+
+    while (queue_start < queue_end)
+    {
+
+        current_proc = queue[queue_start];
+        current_depth = depth[queue_start++];
+
+        for (i = 0; i < NR_PROCS; ++i)
+        {
+            if (mproc[i].mp_flags & IN_USE && proc_nr != i && mproc[i].mp_parent == current_proc)
+            {
+                ++descendants;
+                queue[queue_end] = i;
+                depth[queue_end++] = current_depth + 1;
+            }
+        }
+    }
+
+    return descendants;
+}
 
 void maxDescendantsInBounds( int* max_desc, pid_t* who, int A, int B )
 {
@@ -188,9 +229,9 @@ void maxDescendantsInBounds( int* max_desc, pid_t* who, int A, int B )
     {
         if (mproc[proc_nr].mp_flags & IN_USE)
         {
-            descendants = func();
+            descendants = countAllDescendants(proc_nr, A, B);
 
-            if (descendants > max_desc_found)
+            if (descendants > max_desc_found && A <= descendants <= B)
             {
                 max_desc_found = descendants;
                 found = mproc[proc_nr].mp_pid;
