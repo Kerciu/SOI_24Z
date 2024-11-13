@@ -185,31 +185,26 @@ int countAllDescendants( int proc_nr, int A_bound, int B_bound )
     int i;
 
     int queue[NR_PROCS];
-    int depth[NR_PROCS];
 
     int queue_start = 0;
     int queue_end = 0;
 
     int current_proc;
-    int current_depth;
 
     /* queue initialization */
-    queue[queue_end] = proc_nr;
-    depth[queue_end++] = 1;
+    queue[queue_end++] = proc_nr;
 
     while (queue_start < queue_end)
     {
 
-        current_proc = queue[queue_start];
-        current_depth = depth[queue_start++];
+        current_proc = queue[queue_start++];
 
         for (i = 0; i < NR_PROCS; ++i)
         {
             if (mproc[i].mp_flags & IN_USE && proc_nr != i && mproc[i].mp_parent == current_proc)
             {
                 ++descendants;
-                queue[queue_end] = i;
-                depth[queue_end++] = current_depth + 1;
+                queue[queue_end++] = i;
             }
         }
     }
@@ -328,7 +323,7 @@ int countDescendants( int proc_nr, int N )
                 ++descendants;
 
                 /* do not exceed N depth*/
-                if (current_depth <= N)
+                if (current_depth < N)
                 {
                     /*
                         if not exceeded add another child to the queue
