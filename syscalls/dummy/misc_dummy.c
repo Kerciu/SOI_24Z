@@ -29,6 +29,8 @@ Pomysł na rozwiązanie:
 
 void pushToStack( int stack[], int depth[], int* top, int procNr, int procDepth )
 {
+    if (*top >= NR_PROCS) return;       /* stack overflow */
+
     stack[*top] = procNr;
     depth[*top] = procDepth;
     (*top)++;
@@ -36,6 +38,8 @@ void pushToStack( int stack[], int depth[], int* top, int procNr, int procDepth 
 
 void popFromStack( int stack[], int depth[], int* top, int* procNr, int* procDepth )
 {
+    if (*top <= 0) return;              /* stack underflow */
+
     (*top)--;
     *procNr = stack[*top];
     *procDepth = depth[*top];
@@ -43,7 +47,10 @@ void popFromStack( int stack[], int depth[], int* top, int* procNr, int* procDep
 
 int isChild( int parentProc, int candidate )
 {
-    return (mproc[candidate].mp_flags & IN_USE) && mproc[candidate].mp_parent == parentProc;
+    if ((mproc[candidate].mp_flags & IN_USE) && mproc[candidate].mp_parent == parentProc)
+        return 1;
+
+    else return 0;
 }
 
 int procHasChildren( int currentProc )
@@ -51,7 +58,7 @@ int procHasChildren( int currentProc )
     int procNr;
     for (procNr = 0; procNr < NR_PROCS; ++procNr)
     {
-        if (isChild(currentProc, procNr))
+        if (isChild(currentProc, procNr) == 1)
             return 1;
     }
 
@@ -63,7 +70,7 @@ void pushChildrenToStack( int stack[], int depth[], int* top, int currentProc, i
     int i;
     for (i = 0; i < NR_PROCS; ++i)
     {
-        if (isChild(currentProc, i))
+        if (isChild(currentProc, i) == 1)
         {
             pushToStack(stack, depth, top, i, procDepth + 1);
         }
@@ -87,23 +94,22 @@ int determinePathToChildless( int start_proc, pid_t excluded )
 
     while (top > 0)
     {
-        --top;
-
         popFromStack(stack, depth, &top, &currentProc, &currentDepth);
 
         if (mproc[currentProc].mp_pid == excluded || !(mproc[currentProc].mp_flags & IN_USE))
             continue;
 
-        if (!procHasChildren(currentProc))
+        if (procHasChildren(currentProc) != 1)
         {
             /* update max depth */
-
-            maxDepth = currentDepth;
+            if (currentDepth > maxDepth)
+            {
+                maxDepth = currentDepth;
+            }
 
         } else {
 
             /* push children to the stack */
-
             pushChildrenToStack(stack, depth, &top, currentProc, currentDepth);
         }
     }
@@ -113,7 +119,6 @@ int determinePathToChildless( int start_proc, pid_t excluded )
 
 void longestPathToChildless( int* longestPath, pid_t* who, pid_t excluded )
 {
-
     int procNr;
     int currentDepth;
 
