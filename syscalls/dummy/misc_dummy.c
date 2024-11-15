@@ -132,15 +132,16 @@ void longestPathToChildless( int* longestPath, pid_t* who, pid_t excluded )
 
     for (procNr = 0; procNr < NR_PROCS; ++procNr)
     {
-        if (!(mproc[procNr].mp_flags & IN_USE) || mproc[procNr].mp_pid == excluded)
-            continue;
+        if (!(!(mproc[procNr].mp_flags & IN_USE) || mproc[procNr].mp_pid == excluded))
+            {
 
-        currentDepth = determinePathToChildless(procNr, excluded);
+            currentDepth = determinePathToChildless(procNr, excluded);
 
-        if (currentDepth > maxPath)
-        {
-            maxPath = currentDepth;
-            found = mproc[procNr].mp_pid;
+            if (currentDepth > maxPath)
+            {
+                maxPath = currentDepth;
+                found = mproc[procNr].mp_pid;
+            }
         }
     }
 
@@ -352,6 +353,28 @@ int countDescendants( int proc_nr, int N )
     return descendants;
 }
 
+int countDescendantsRecursive( int proc_nr, int curr_depth, int N )
+{
+    int descendants = 0;
+    int i;
+
+    for (i = 0; i < NR_PROCS; ++i)
+    {
+        if ((mproc[i].mp_flags & IN_USE) && proc_nr != i && mproc[i].mp_parent == proc_nr)
+        {
+
+            if (curr_depth < N)
+            {
+                descendants = countDescendantsRecursive(i, curr_depth + 1, N);
+            }
+
+            ++descendants;
+        }
+    }
+
+    return descendants;
+}
+
 void maxNDescendants( int* max_desc, pid_t* who, int N )
 {
     int proc_nr;
@@ -364,7 +387,7 @@ void maxNDescendants( int* max_desc, pid_t* who, int N )
     {
         if (mproc[proc_nr].mp_flags & IN_USE)
         {
-            descendants = countDescendants(proc_nr, N);
+            descendants = countDescendantsRecursive(proc_nr, 1, N);
 
             if (descendants > max_desc_found)
             {
