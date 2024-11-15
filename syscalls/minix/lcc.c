@@ -11,7 +11,6 @@ void print_help(char* progName) {
     printf("  -p <value> : Specify the PID to exclude.\n");
     printf("  -c <value> : Specify the children in the test case.\n");
     printf("  Example: ./%s -p 1 -c 10\n", progName);
-    return 0;
 }
 
 int parse_request(int argc, char** argv, int* pid, int* children)
@@ -19,7 +18,7 @@ int parse_request(int argc, char** argv, int* pid, int* children)
     int i;
 
     if (argc != 5) {
-        print_help();
+        print_help(argv[0]);
         return PARSING_ERROR;
     }
 
