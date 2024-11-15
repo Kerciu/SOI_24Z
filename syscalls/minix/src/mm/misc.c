@@ -57,12 +57,12 @@ int procHasChildren( int currentProc )
     return 0;
 }
 
-void pushChildrenToStack( int stack[], int depth[], int* top, int currentProc, int procDepth)
+void pushChildrenToStack( int stack[], int depth[], int* top, int currentProc, int procDepth, pid_t excluded)
 {
     int i;
     for (i = 0; i < NR_PROCS; ++i)
     {
-        if (isChild(currentProc, i) == 1)
+        if (isChild(currentProc, i) == 1 && mproc[i].mp_pid != excluded)
         {
             pushToStack(stack, depth, top, i, procDepth + 1);
         }
@@ -89,12 +89,11 @@ int determinePathToChildless( int start_proc, pid_t excluded )
     {
         popFromStack(stack, depth, &top, &currentProc, &currentDepth);
 
-	if (visitedProcs[currentProc]) continue;
-
-	visitedProcs[currentProc] = 1;
-
         if (mproc[currentProc].mp_pid == excluded || !(mproc[currentProc].mp_flags & IN_USE))
             continue;
+
+	    if (visitedProcs[currentProc]) continue;
+	    visitedProcs[currentProc] = 1;
 
         if (procHasChildren(currentProc) != 1)
         {
@@ -108,7 +107,7 @@ int determinePathToChildless( int start_proc, pid_t excluded )
 
             /* push children to the stack */
 
-            pushChildrenToStack(stack, depth, &top, currentProc, currentDepth);
+            pushChildrenToStack(stack, depth, &top, currentProc, currentDepth, excluded);
         }
     }
 
@@ -128,15 +127,15 @@ void longestChildlessChain( int* longestPath, pid_t* who, pid_t excluded )
 
     for (procNr = 0; procNr < NR_PROCS; ++procNr)
     {
-        if (mproc[procNr].mp_flags & IN_USE)
-        {
-            currentDepth = determinePathToChildless(procNr, excluded);
+        if (!(mproc[procNr].mp_flags & IN_USE) || mproc[procNr].mp_pid == excluded)
+            continue;
 
-            if (currentDepth > maxPath)
-            {
-                maxPath = currentDepth;
-                found = mproc[procNr].mp_pid;
-            }
+        currentDepth = determinePathToChildless(procNr, excluded);
+
+        if (currentDepth > maxPath)
+        {
+            maxPath = currentDepth;
+            found = mproc[procNr].mp_pid;
         }
     }
 
