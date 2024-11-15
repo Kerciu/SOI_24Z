@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <lib.h>
 
 #define PARSING_ERROR -1
 
-void print_help() {
+void print_help(char* progName) {
     printf("Program usage:\n");
     printf("  -p <value> : Specify the PID to exclude.\n");
     printf("  -c <value> : Specify the children in the test case.\n");
-    printf("  Example: ./program -p 1 -c 10\n");
+    printf("  Example: ./%s -p 1 -c 10\n", progName);
     return 0;
 }
 
@@ -41,7 +43,7 @@ int parse_request(int argc, char** argv, int* pid, int* children)
                 return PARSING_ERROR;
             }
         } else if (strcmp(argv[i], "-h") == 0) {
-            print_help();
+            print_help(argv[0]);
             return 0;
 
         } else {
@@ -61,15 +63,25 @@ int main(int argc, char** argv)
     int ret1, ret2;
     int pid;
     int children;
+    int i;
 
     if( parse_request(argc, argv, &pid, &children) != 0 )
     {
         return PARSING_ERROR;
     }
 
-    value = atoi(argv[1]);
+    printf("Create %d children\n", children);
+    for (i = 0; i < children; ++i)
+    {
+        if ( fork() == 0 )
+        {
+            sleep( 5 );
+            return 0;
+        }
+    }
+    sleep( 1 );
 
-    m.m1_i1 = value;
+    m.m1_i1 = pid;
     ret1 = _syscall( MM, LONGESTPATH, & m );
     ret2 = _syscall( MM, WHOLONGESTPATH, & m);
     printf( "syscall return: Longest path: %d, PID: %d\n", ret1, ret2 );
