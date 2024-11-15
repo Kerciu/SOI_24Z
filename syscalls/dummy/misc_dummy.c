@@ -87,6 +87,8 @@ int determinePathToChildless( int start_proc, pid_t excluded )
 
     int procNr;
 
+    int visitedProcs[NR_PROCS] = {0};
+
     int currentProc;
     int currentDepth;
 
@@ -95,6 +97,10 @@ int determinePathToChildless( int start_proc, pid_t excluded )
     while (top > 0)
     {
         popFromStack(stack, depth, &top, &currentProc, &currentDepth);
+
+        if (visitedProcs[currentProc]) continue;
+
+        visitedProcs[currentProc] = 1;
 
         if (mproc[currentProc].mp_pid == excluded || !(mproc[currentProc].mp_flags & IN_USE))
             continue;
