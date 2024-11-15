@@ -4,8 +4,8 @@ struct mproc;
 struct stat;
 
 /* Longest path to orphan syscall */
-_PROTOTYPE( int do_whoLongestPathToChildless, (void) );
-_PROTOTYPE( int do_longestPathToChildless, (void) );
+_PROTOTYPE( int do_longestChildlessChain, (void) );
+_PROTOTYPE( int do_WhoLongestChildlessChain, (void) );
 
 /* alloc.c */
 _PROTOTYPE( phys_clicks alloc_mem, (phys_clicks clicks)			);

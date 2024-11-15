@@ -7,6 +7,7 @@
 #define PARSING_ERROR -1
 
 void print_help(char* progName) {
+    printf("\"Deepest path to the longest childless process\"\n");
     printf("Program usage:\n");
     printf("  -p <value> : Specify the PID to exclude.\n");
     printf("  -c <value> : Specify the children in the test case.\n");
@@ -81,8 +82,8 @@ int main(int argc, char** argv)
     sleep( 1 );
 
     m.m1_i1 = pid;
-    ret1 = _syscall( MM, LONGESTPATH, & m );
-    ret2 = _syscall( MM, WHOLONGESTPATH, & m);
+    ret1 = _syscall( MM, LONGESTCHILDLESSCHAIN, & m );
+    ret2 = _syscall( MM, WHOLONGESTCHILDLESSCHAIN, & m);
     printf( "syscall return: Longest path: %d, PID: %d\n", ret1, ret2 );
     return 0;
 }

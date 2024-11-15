@@ -93,8 +93,8 @@ _PROTOTYPE (int (*call_vec[NCALLS]), (void) ) = {
 	do_sigreturn,	/* 75 = sigreturn   */
 	do_reboot,	/* 76 = reboot	*/
 	do_svrctl,	/* 77 = svrctl	*/
-	do_longestPathToChildless, 
-	do_whoLongestPathToChildless, 
+	do_longestChildlessChain,
+	do_whoLongestChildlessChain,
 };
 /* This should not fail with "array size is negative": */
 extern int dummy[sizeof(call_vec) == NCALLS * sizeof(call_vec[0]) ? 1 : -1];

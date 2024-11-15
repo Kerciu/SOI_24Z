@@ -117,7 +117,7 @@ int determinePathToChildless( int start_proc, pid_t excluded )
     return maxDepth;
 }
 
-void longestPathToChildless( int* longestPath, pid_t* who, pid_t excluded )
+void longestChildlessChain( int* longestPath, pid_t* who, pid_t excluded )
 {
 
     int procNr;
@@ -144,7 +144,7 @@ void longestPathToChildless( int* longestPath, pid_t* who, pid_t excluded )
     *who = found;
 }
 
-PUBLIC int do_longestPathToChildless()
+PUBLIC int do_longestChildlessChain()
 {
     int longestPath = -1;
     pid_t who = -1;
@@ -155,13 +155,13 @@ PUBLIC int do_longestPathToChildless()
     return longestPath;
 }
 
-PUBLIC int do_whoLongestPathToChildless()
+PUBLIC int do_whoLongestChildlessChain()
 {
     int longestPath = -1;
     pid_t who = -1;
     pid_t exluded = mm_in.m1_i1;
 
-    longestPathToChildless(&longestPath, &who, exluded);
+    longestChildlessChain(&longestPath, &who, exluded);
 
     return who;
 }
