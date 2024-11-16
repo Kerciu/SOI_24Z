@@ -365,7 +365,7 @@ int countDescendantsRecursive( int proc_nr, int curr_depth, int N )
 
             if (curr_depth < N)
             {
-                descendants = countDescendantsRecursive(i, curr_depth + 1, N);
+                descendants += countDescendantsRecursive(i, curr_depth + 1, N);
             }
 
             ++descendants;
