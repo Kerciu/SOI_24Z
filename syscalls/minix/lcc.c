@@ -73,7 +73,7 @@ int main(int argc, char** argv)
     printf("Create %d children\n", children);
     for (i = 0; i < children; ++i)
     {
-        if ( fork() == 0 )
+        if ( fork() != 0 )
         {
             sleep( 5 );
             return 0;
