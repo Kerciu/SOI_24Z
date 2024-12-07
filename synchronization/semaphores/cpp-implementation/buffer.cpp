@@ -3,7 +3,7 @@
 #include <string>
 #include "monitor.h"
 
-int const threadsCounts = 4;  // number of threads
+int const threadsCounts = 4;
 
 int const bufferSize = 9;
 
@@ -12,9 +12,10 @@ class Buffer
 {
 private:
 
-	std::vector<int> values;
+	std::vector<char> values;
 	Semaphore mutex;
-	bool readA, readB;
+    Semaphore full, empty;
+    Semaphore semA, semB;
 
 	void print(std::string name)
 	{
@@ -25,63 +26,84 @@ private:
 	}
 
 public:
-	Buffer() : mutex(1), readA(false), readB(false)
+	Buffer() : mutex(1), empty(0), full(bufferSize), semA(1), semB(1) { }
+
+	void putA(char value)
 	{
+        full.p();
+		mutex.p();
+        if (size() < 5)
+        {
+		    values.push_back(value);
+		    print("P");
+        }
+        mutex.v();
+        empty.v();
 	}
 
-	void put(int value)
+    void putB(char value)
 	{
+        full.p();
 		mutex.p();
-		// insert element to buffer
 		values.push_back(value);
-		print("P");
+		if (size() > 3)
+        {
+		    values.push_back(value);
+		    print("P");
+        }
 		mutex.v();
+        empty.v();
 	}
 
-	int getA()
+
+	char getA()
 	{
+        semA.p();
+        empty.p();
 		mutex.p();
-		// read element from buffer (without removing)
-		int v = values.front();
-		readA = true;
-		print("A read");
-		if (readB)
-		{
-			// remove element from buffer
-			values.erase(values.begin());
-			print("A remove");
-			readA = readB = false;
-		}
+		char v = values.front();
+        values.erase(values.begin());
 		mutex.v();
+        full.v();
+        semB.v();
 		return v;
 	}
 
-	int getB()
+    char getB()
 	{
+        semB.p();
+        empty.p();
 		mutex.p();
-		// read element from buffer (without removing)
-		int v = values.front();
-		readB = true;
-		print("B read");
-		if (readA)
-		{
-			// remove element from buffer
-			values.erase(values.begin());
-			print("B rmove");
-			readA = readB = false;
-		}
+		char v = values.front();
+        values.erase(values.begin());
 		mutex.v();
+        full.v();
+        semA.v();
 		return v;
 	}
+
+    size_t size()
+    {
+        return values.size();
+    }
 };
 
 Buffer buffer;
 
-void* threadProd(void* arg)
+void* threadProdA(void* arg)
 {
 	for (int i = 0; i < 10; ++i)
 	{
-		buffer.put(i);
+        buffer.putA('A');
+	}
+	return NULL;
+}
+
+void* threadProdB(void* arg)
+{
+	for (int i = 0; i < 10; ++i)
+	{
+        buffer.putB('B');
 	}
 	return NULL;
 }
@@ -110,25 +132,21 @@ int main()
 	HANDLE tid[threadsCounts];
 	DWORD id;
 
-	// create threads
-	tid[0] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadProd, 0, 0, &id);
-	tid[1] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadProd, 0, 0, &id);
+	tid[0] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadProdA, 0, 0, &id);
+	tid[1] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadProdB, 0, 0, &id);
 	tid[2] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadConsA, 0, 0, &id);
-	tid[3] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadConsB, 0, 0, &id);
+	tid[3] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadConsA, 0, 0, &id);
 
-	// wait for threads to finish
-	for (int i = 0; i <= threadsCounts; i++)
+	for (int i = 0; i < threadsCounts; i++)
 		WaitForSingleObject(tid[i], INFINITE);
 #else
 	pthread_t tid[threadsCounts];
 
-	// create threads
-	pthread_create(&(tid[0]), NULL, threadProd, NULL);
-	pthread_create(&(tid[1]), NULL, threadProd, NULL);
+	pthread_create(&(tid[0]), NULL, threadProdA, NULL);
+	pthread_create(&(tid[1]), NULL, threadProdB, NULL);
 	pthread_create(&(tid[2]), NULL, threadConsA, NULL);
-	pthread_create(&(tid[3]), NULL, threadConsB, NULL);
+	pthread_create(&(tid[3]), NULL, threadConsA, NULL);
 
-	// wait for threads to finish
 	for (int i = 0; i < threadsCounts; i++)
 		pthread_join(tid[i], (void**)NULL);
 #endif
