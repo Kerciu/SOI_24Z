@@ -15,7 +15,9 @@ private:
 	std::vector<char> values;
 	Semaphore mutex;
     Semaphore full, empty;
-    Semaphore semA, semB;
+	Semaphore semProdA, semProdB; 	// direct resume
+	Semaphore semConsA, semConsB;
+	bool waitA, waitB;
 
 	void print(std::string name)
 	{
@@ -26,73 +28,138 @@ private:
 	}
 
 public:
-	Buffer() : mutex(1), empty(0), full(bufferSize), semA(1), semB(1) { }
+	Buffer() : mutex(1), empty(0), full(bufferSize), semProdA(1), semProdB(1), semConsA(0), semConsB(0)
+	{
+		waitA = waitB = false;
+	}
+
+	bool canA()
+	{
+		return values.size() < 5;
+	}
+
+	bool canB()
+	{
+		return values.size() > 3;
+	}
 
 	void putA(char value)
 	{
-        full.p();
+		//semProdA.p();
+		full.p();
 		mutex.p();
-        if (size() < 5)
-        {
-		    values.push_back(value);
-		    print("P");
-        }
-        mutex.v();
-        empty.v();
+		if (canA())
+		{
+			values.push_back(value);
+			print("P_A");
+
+			// if (canB()) {
+			// 	semProdB.v();
+			// }
+
+			mutex.v();
+			empty.v();
+		} else {
+			full.v();
+			mutex.v();
+		}
 	}
 
     void putB(char value)
 	{
-        full.p();
+        // semProdB.p();
+		full.p();
 		mutex.p();
-		values.push_back(value);
-		if (size() > 3)
-        {
-		    values.push_back(value);
-		    print("P");
-        }
-		mutex.v();
-        empty.v();
-	}
+		if (canB())
+		{
+			values.push_back(value);
+			print("P_B");
 
+			// if (canA()) {
+			// 	semProdA.v();
+			// }
+
+			mutex.v();
+			empty.v();
+		} else {
+			full.v();
+			mutex.v();
+		}
+	}
 
 	char getA()
 	{
-        semA.p();
-        empty.p();
+		semConsA.p();
+		empty.p();
 		mutex.p();
-		char v = values.front();
-        values.erase(values.begin());
+
+		char v = 'o';
+		if (!values.empty())
+		{
+			char v = values.front();
+			values.erase(values.begin());
+			print("C");
+
+			waitA = !waitA;
+			waitB = !waitB;
+
+			if (canA()){
+				semProdA.v();
+			}
+			if (canB()){
+				semProdB.v();
+			}
+
+			full.v();
+		} else {
+			empty.v();
+		}
+
+		semConsB.v();
 		mutex.v();
-        full.v();
-        semB.v();
+
 		return v;
 	}
 
-    char getB()
+	char getB()
 	{
-        semB.p();
-        empty.p();
+		semConsB.p();
+		empty.p();
 		mutex.p();
-		char v = values.front();
-        values.erase(values.begin());
+		char v = 'o';
+
+		if (!values.empty())
+		{
+			char v = values.front();
+			values.erase(values.begin());
+			print("C");
+
+			waitA = !waitA;
+			waitB = !waitB;
+
+			if (canA()){
+				semProdA.v();
+			}
+			if (canB()){
+				semProdB.v();
+			}
+			full.v();
+		} else {
+			empty.v();
+		}
+
+		semConsA.v();
 		mutex.v();
-        full.v();
-        semA.v();
+
 		return v;
 	}
-
-    size_t size()
-    {
-        return values.size();
-    }
 };
 
 Buffer buffer;
 
 void* threadProdA(void* arg)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 20; ++i)
 	{
         buffer.putA('A');
 	}
@@ -110,7 +177,7 @@ void* threadProdB(void* arg)
 
 void* threadConsA(void* arg)
 {
-	for (int i = 0; i < 17; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		auto value = buffer.getA();
 	}
@@ -119,7 +186,7 @@ void* threadConsA(void* arg)
 
 void* threadConsB(void* arg)
 {
-	for (int i = 0; i < 17; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		auto value = buffer.getB();
 	}
@@ -135,7 +202,7 @@ int main()
 	tid[0] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadProdA, 0, 0, &id);
 	tid[1] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadProdB, 0, 0, &id);
 	tid[2] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadConsA, 0, 0, &id);
-	tid[3] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadConsA, 0, 0, &id);
+	tid[3] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadConsB, 0, 0, &id);
 
 	for (int i = 0; i < threadsCounts; i++)
 		WaitForSingleObject(tid[i], INFINITE);
@@ -145,7 +212,7 @@ int main()
 	pthread_create(&(tid[0]), NULL, threadProdA, NULL);
 	pthread_create(&(tid[1]), NULL, threadProdB, NULL);
 	pthread_create(&(tid[2]), NULL, threadConsA, NULL);
-	pthread_create(&(tid[3]), NULL, threadConsA, NULL);
+	pthread_create(&(tid[3]), NULL, threadConsB, NULL);
 
 	for (int i = 0; i < threadsCounts; i++)
 		pthread_join(tid[i], (void**)NULL);
