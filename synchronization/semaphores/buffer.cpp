@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <thread>
+#include <chrono>
 #include "monitor.h"
 
 int const threadsCounts = 4;
@@ -15,9 +17,9 @@ private:
 	std::vector<char> values;
 	Semaphore mutex;
     Semaphore full, empty;
-	Semaphore semProdA, semProdB; 	// direct resume
-	Semaphore semConsA, semConsB;
-	bool waitA, waitB;
+	Semaphore semA, semB;
+	bool readA = false;
+	bool readB = false;
 
 	void print(std::string name)
 	{
@@ -28,10 +30,8 @@ private:
 	}
 
 public:
-	Buffer() : mutex(1), empty(0), full(bufferSize), semProdA(1), semProdB(1), semConsA(0), semConsB(0)
-	{
-		waitA = waitB = false;
-	}
+	Buffer() : mutex(1), empty(0), full(bufferSize), semA(1), semB(1)
+	{ }
 
 	bool canA()
 	{
@@ -57,12 +57,12 @@ public:
 			// 	semProdB.v();
 			// }
 
-			mutex.v();
 			empty.v();
 		} else {
 			full.v();
-			mutex.v();
 		}
+
+		mutex.v();
 	}
 
     void putB(char value)
@@ -79,43 +79,41 @@ public:
 			// 	semProdA.v();
 			// }
 
-			mutex.v();
 			empty.v();
 		} else {
 			full.v();
-			mutex.v();
 		}
+
+		mutex.v();
 	}
 
 	char getA()
 	{
-		semConsA.p();
+		semA.p();
 		empty.p();
 		mutex.p();
-
 		char v = 'o';
-		if (!values.empty())
-		{
-			char v = values.front();
-			values.erase(values.begin());
-			print("C");
 
-			waitA = !waitA;
-			waitB = !waitB;
-
-			if (canA()){
-				semProdA.v();
+		// if (!values.empty())
+		// {
+			v = values.front();
+			readA = true;
+			if (readB)
+			{
+				values.erase(values.begin());
+				print("C_A");
+				readA = readB = false;
+				semA.v();
+				semB.v();
+				full.v();
+			} else {
+				empty.v();
 			}
-			if (canB()){
-				semProdB.v();
-			}
+		// } else {
+		// 	empty.v();
+		// }
 
-			full.v();
-		} else {
-			empty.v();
-		}
-
-		semConsB.v();
+		// semB.v();
 		mutex.v();
 
 		return v;
@@ -123,32 +121,31 @@ public:
 
 	char getB()
 	{
-		semConsB.p();
+		semB.p();
 		empty.p();
 		mutex.p();
 		char v = 'o';
 
-		if (!values.empty())
-		{
-			char v = values.front();
-			values.erase(values.begin());
-			print("C");
-
-			waitA = !waitA;
-			waitB = !waitB;
-
-			if (canA()){
-				semProdA.v();
+		// if (!values.empty())
+		// {
+			v = values.front();
+			readB = true;
+			if (readA)
+			{
+				values.erase(values.begin());
+				print("C_B");
+				readA = readB = false;
+				semA.v();
+				semB.v();
+				full.v();
+			} else {
+				empty.v();
 			}
-			if (canB()){
-				semProdB.v();
-			}
-			full.v();
-		} else {
-			empty.v();
-		}
+		// } else {
+		// 	empty.v();
+		// }
 
-		semConsA.v();
+		// semA.v();
 		mutex.v();
 
 		return v;
@@ -159,7 +156,7 @@ Buffer buffer;
 
 void* threadProdA(void* arg)
 {
-	for (int i = 0; i < 20; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
         buffer.putA('A');
 	}
@@ -180,6 +177,7 @@ void* threadConsA(void* arg)
 	for (int i = 0; i < 10; ++i)
 	{
 		auto value = buffer.getA();
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	return NULL;
 }
@@ -189,6 +187,7 @@ void* threadConsB(void* arg)
 	for (int i = 0; i < 10; ++i)
 	{
 		auto value = buffer.getB();
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	return NULL;
 }
