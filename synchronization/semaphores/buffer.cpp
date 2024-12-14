@@ -16,10 +16,10 @@ private:
 
 	std::vector<char> values;
 	Semaphore mutex;
-    Semaphore full, empty;
-	Semaphore semA, semB;
-	bool readA = false;
-	bool readB = false;
+    Semaphore empty, full;
+	Semaphore stopA, stopB;
+	bool waitA = false;
+	bool waitB = false;
 
 	void print(std::string name)
 	{
@@ -30,123 +30,127 @@ private:
 	}
 
 public:
-	Buffer() : mutex(1), empty(0), full(bufferSize), semA(1), semB(1)
-	{ }
+	Buffer() : mutex(1), empty(0), full(bufferSize), stopA(1), stopB(1) { }
 
-	bool canA()
+	inline bool canA() const
 	{
-		return values.size() < 5;
+		return values.size() < 5 && values.size() <= bufferSize;
 	}
 
-	bool canB()
+	inline bool canB() const
 	{
-		return values.size() > 3;
+		return values.size() > 3 && values.size() <= bufferSize;
+	}
+
+	inline bool canConsume() const
+	{
+		return !values.empty();
 	}
 
 	void putA(char value)
 	{
-		//semProdA.p();
 		full.p();
 		mutex.p();
-		if (canA())
+
+		if (!canA())
 		{
-			values.push_back(value);
-			print("P_A");
-
-			// if (canB()) {
-			// 	semProdB.v();
-			// }
-
-			empty.v();
-		} else {
-			full.v();
+			waitA = true;
+			mutex.v();
+			// suspend process on dedicated semaphore
+			stopA.p();
+			mutex.p();
+			waitA = false;
 		}
 
+		values.push_back(value);
+		print("P_A");
+		empty.v();
+
 		mutex.v();
+
+		// if (canB() && waitB)
+		// {
+		// 	full.p();
+		// 	stopB.v();
+		// }
+		// else
+		// {
+		// 	empty.v();
+		// 	mutex.v();
+		// }
 	}
 
     void putB(char value)
 	{
-        // semProdB.p();
 		full.p();
 		mutex.p();
-		if (canB())
+
+		if (!canB())
 		{
-			values.push_back(value);
-			print("P_B");
-
-			// if (canA()) {
-			// 	semProdA.v();
-			// }
-
-			empty.v();
-		} else {
-			full.v();
+			waitB = true;
+			mutex.v();
+			// suspend process on dedicated semaphore
+			stopB.p();
+			mutex.p();
+			waitB = false;
 		}
 
+		values.push_back(value);
+		print("P_B");
+		empty.v();
+
 		mutex.v();
+
+		// if (canA() && waitA)
+		// {
+		// 	full.p();
+		// 	stopA.v();
+		// }
+		// else
+		// 	mutex.v();
 	}
 
-	char getA()
+	// TODO: Deadlock after second consumer consumes
+
+	char get(std::string who)
 	{
-		semA.p();
 		empty.p();
 		mutex.p();
-		char v = 'o';
 
-		// if (!values.empty())
-		// {
-			v = values.front();
-			readA = true;
-			if (readB)
-			{
-				values.erase(values.begin());
-				print("C_A");
-				readA = readB = false;
-				semA.v();
-				semB.v();
-				full.v();
-			} else {
-				empty.v();
+		char v;
+		v = values.front();
+		values.erase(values.begin());
+		print("C_" + who);
+
+		if (canConsume())
+		{
+			values.erase(values.begin());
+			print("C_" + who);
+
+			if (canA() && waitA) {
+				stopA.v();
 			}
-		// } else {
-		// 	empty.v();
-		// }
-
-		// semB.v();
-		mutex.v();
-
-		return v;
-	}
-
-	char getB()
-	{
-		semB.p();
-		empty.p();
-		mutex.p();
-		char v = 'o';
-
-		// if (!values.empty())
-		// {
-			v = values.front();
-			readB = true;
-			if (readA)
-			{
-				values.erase(values.begin());
-				print("C_B");
-				readA = readB = false;
-				semA.v();
-				semB.v();
-				full.v();
-			} else {
-				empty.v();
+			else {
+				if (canB() && waitB) {
+					stopB.v();
+				}
+				else
+					mutex.v();
 			}
-		// } else {
-		// 	empty.v();
-		// }
+		} else {
+			if (canA() && waitA) {
+				stopA.v();
+			}
+			else {
+				if (canB() && waitB) {
+					stopB.v();
+				}
+				else
+					mutex.v();
+			}
+		}
 
-		// semA.v();
-		mutex.v();
+		full.v();
 
 		return v;
 	}
@@ -174,20 +178,20 @@ void* threadProdB(void* arg)
 
 void* threadConsA(void* arg)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 17; ++i)
 	{
-		auto value = buffer.getA();
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		auto value = buffer.get("A");
 	}
 	return NULL;
 }
 
 void* threadConsB(void* arg)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 17; ++i)
 	{
-		auto value = buffer.getB();
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		auto value = buffer.get("B");
 	}
 	return NULL;
 }
