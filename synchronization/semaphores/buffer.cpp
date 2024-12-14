@@ -7,9 +7,9 @@
 
 #define consSleep() std::this_thread::sleep_for(std::chrono::milliseconds(100))
 
-#define threadIters 10
-#define threadsCounts 4
-#define bufferSize 9
+constexpr int THREADS_ITERS = 10;
+constexpr int THREADS_COUNTS = 4;
+constexpr int BUFFER_SIZE = 9;
 
 class Buffer
 {
@@ -22,7 +22,7 @@ private:
 	bool waitA = false;
 	bool waitB = false;
 
-	void print(std::string name)
+	void print(std::string name) const noexcept
 	{
 		std::cout << "\n### " << name << " " << values.size() << "[";
 		for (auto v : values)
@@ -31,14 +31,14 @@ private:
 	}
 
 public:
-	Buffer() : mutex(1), empty(0), full(bufferSize), stopA(0), stopB(0) { }
+	Buffer() : mutex(1), empty(0), full(BUFFER_SIZE), stopA(0), stopB(0) { }
 
-	inline bool canA() const
+	inline bool canA() const noexcept
 	{
 		return values.size() < 5;
 	}
 
-	inline bool canB() const
+	inline bool canB() const noexcept
 	{
 		return values.size() > 3;
 	}
@@ -136,52 +136,52 @@ public:
 
 Buffer buffer;
 
-void* threadProdA(void* arg)
+void* threadProdA(void* arg) noexcept
 {
-	for (int i = 0; i < threadIters; ++i)
+	for (int i = 0; i < THREADS_ITERS; ++i)
 	{
         buffer.putA('A');
 		// printf("Prod A Iters: %d\n", i + 1);
 	}
-	return NULL;
+	return nullptr;
 }
 
-void* threadProdB(void* arg)
+void* threadProdB(void* arg) noexcept
 {
-	for (int i = 0; i < threadIters; ++i)
+	for (int i = 0; i < THREADS_ITERS; ++i)
 	{
         buffer.putB('B');
 		// printf("Prod B Iters: %d\n", i + 1);
 	}
-	return NULL;
+	return nullptr;
 }
 
-void* threadConsA(void* arg)
+void* threadConsA(void* arg) noexcept
 {
-	for (int i = 0; i < threadIters; ++i)
+	for (int i = 0; i < THREADS_ITERS; ++i)
 	{
 		consSleep();
 		auto value = buffer.get("A");
 		// printf("Cons A Iters: %d\n", i+ 1);
 	}
-	return NULL;
+	return nullptr;
 }
 
-void* threadConsB(void* arg)
+void* threadConsB(void* arg) noexcept
 {
-	for (int i = 0; i < threadIters; ++i)
+	for (int i = 0; i < THREADS_ITERS; ++i)
 	{
 		consSleep();
 		auto value = buffer.get("B");
 		// printf("Cons B Iters: %d\n", i + 1);
 	}
-	return NULL;
+	return nullptr;
 }
 
 int main()
 {
 #ifdef _WIN32
-	HANDLE tid[threadsCounts];
+	HANDLE tid[THREADS_COUNTS];
 	DWORD id;
 
 	tid[0] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadProdA, 0, 0, &id);
@@ -189,17 +189,17 @@ int main()
 	tid[2] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadConsA, 0, 0, &id);
 	tid[3] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadConsB, 0, 0, &id);
 
-	for (int i = 0; i < threadsCounts; i++)
+	for (int i = 0; i < THREADS_COUNTS; i++)
 		WaitForSingleObject(tid[i], INFINITE);
 #else
-	pthread_t tid[threadsCounts];
+	pthread_t tid[THREADS_COUNTS];
 
 	pthread_create(&(tid[0]), NULL, threadProdA, NULL);
 	pthread_create(&(tid[1]), NULL, threadProdB, NULL);
 	pthread_create(&(tid[2]), NULL, threadConsA, NULL);
 	pthread_create(&(tid[3]), NULL, threadConsB, NULL);
 
-	for (int i = 0; i < threadsCounts; i++)
+	for (int i = 0; i < THREADS_COUNTS; i++)
 		pthread_join(tid[i], (void**)NULL);
 #endif
 	return 0;
