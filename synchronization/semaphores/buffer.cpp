@@ -5,10 +5,11 @@
 #include <chrono>
 #include "monitor.h"
 
-int const threadsCounts = 4;
+#define consSleep() std::this_thread::sleep_for(std::chrono::milliseconds(100))
 
-int const bufferSize = 9;
-
+#define threadIters 10
+#define threadsCounts 4
+#define bufferSize 9
 
 class Buffer
 {
@@ -50,13 +51,13 @@ public:
 		if (!canA())
 		{
 			waitA = true;
-			printf("Producer A is waiting, leaving CS\n");
+			// printf("Producer A is waiting, leaving CS\n");
 			mutex.v();
 			// suspend process on dedicated semaphore
 			stopA.p();
-        	printf("Producer A resumed\n");
+        	// printf("Producer A resumed\n");
 			mutex.p();
-			printf("Producer A directly resumed, entered CS\n");
+			// printf("Producer A directly resumed, entered CS\n");
 		}
 
 		waitA = false;
@@ -66,7 +67,7 @@ public:
 
 		if (canB() && waitB)
 		{
-			printf("Resumed process B\n");
+			// printf("Resumed process B\n");
 			stopB.v();
 		}
 
@@ -81,13 +82,13 @@ public:
 		if (!canB())
 		{
 			waitB = true;
-			printf("Producer B is waiting, leaving CS\n");
+			// printf("Producer B is waiting, leaving CS\n");
 			mutex.v();
 			// suspend process on dedicated semaphore
 			stopB.p();
-        	printf("Producer B resumed\n");
+        	// printf("Producer B resumed\n");
 			mutex.p();
-			printf("Producer B directly resumed, entered CS\n");
+			// printf("Producer B directly resumed, entered CS\n");
 		}
 
 		waitB = false;
@@ -97,7 +98,7 @@ public:
 
 		if (canA() && waitA)
 		{
-			printf("Resumed process A\n");
+			// printf("Resumed process A\n");
 			stopA.v();
 		}
 
@@ -116,11 +117,11 @@ public:
 		print("C_" + who);
 
 		if (canA() && waitA) {
-			printf("Resumed process A\n");
+			// printf("Resumed process A\n");
 			stopA.v();
 		}
 		if (canB() && waitB) {
-			printf("Resumed process B\n");
+			// printf("Resumed process B\n");
 			stopB.v();
 		}
 		//else {
@@ -137,42 +138,42 @@ Buffer buffer;
 
 void* threadProdA(void* arg)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < threadIters; ++i)
 	{
         buffer.putA('A');
-		printf("Prod A Iters: %d\n", i + 1);
+		// printf("Prod A Iters: %d\n", i + 1);
 	}
 	return NULL;
 }
 
 void* threadProdB(void* arg)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < threadIters; ++i)
 	{
         buffer.putB('B');
-		printf("Prod B Iters: %d\n", i + 1);
+		// printf("Prod B Iters: %d\n", i + 1);
 	}
 	return NULL;
 }
 
 void* threadConsA(void* arg)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < threadIters; ++i)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		consSleep();
 		auto value = buffer.get("A");
-		printf("Cons A Iters: %d\n", i+ 1);
+		// printf("Cons A Iters: %d\n", i+ 1);
 	}
 	return NULL;
 }
 
 void* threadConsB(void* arg)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < threadIters; ++i)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		consSleep();
 		auto value = buffer.get("B");
-		printf("Cons B Iters: %d\n", i + 1);
+		// printf("Cons B Iters: %d\n", i + 1);
 	}
 	return NULL;
 }
