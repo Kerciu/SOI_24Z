@@ -30,21 +30,16 @@ private:
 	}
 
 public:
-	Buffer() : mutex(1), empty(0), full(bufferSize), stopA(1), stopB(1) { }
+	Buffer() : mutex(1), empty(0), full(bufferSize), stopA(0), stopB(0) { }
 
 	inline bool canA() const
 	{
-		return values.size() < 5 && values.size() <= bufferSize;
+		return values.size() < 5;
 	}
 
 	inline bool canB() const
 	{
-		return values.size() > 3 && values.size() <= bufferSize;
-	}
-
-	inline bool canConsume() const
-	{
-		return !values.empty();
+		return values.size() > 3;
 	}
 
 	void putA(char value)
@@ -55,29 +50,27 @@ public:
 		if (!canA())
 		{
 			waitA = true;
+			printf("Producer A is waiting, leaving CS\n");
 			mutex.v();
 			// suspend process on dedicated semaphore
 			stopA.p();
+        	printf("Producer A resumed\n");
 			mutex.p();
-			waitA = false;
+			printf("Producer A directly resumed, entered CS\n");
 		}
 
+		waitA = false;
 		values.push_back(value);
 		print("P_A");
 		empty.v();
 
-		mutex.v();
+		if (canB() && waitB)
+		{
+			printf("Resumed process B\n");
+			stopB.v();
+		}
 
-		// if (canB() && waitB)
-		// {
-		// 	full.p();
-		// 	stopB.v();
-		// }
-		// else
-		// {
-		// 	empty.v();
-		// 	mutex.v();
-		// }
+		mutex.v();
 	}
 
     void putB(char value)
@@ -88,26 +81,27 @@ public:
 		if (!canB())
 		{
 			waitB = true;
+			printf("Producer B is waiting, leaving CS\n");
 			mutex.v();
 			// suspend process on dedicated semaphore
 			stopB.p();
+        	printf("Producer B resumed\n");
 			mutex.p();
-			waitB = false;
+			printf("Producer B directly resumed, entered CS\n");
 		}
 
+		waitB = false;
 		values.push_back(value);
 		print("P_B");
 		empty.v();
 
-		mutex.v();
+		if (canA() && waitA)
+		{
+			printf("Resumed process A\n");
+			stopA.v();
+		}
 
-		// if (canA() && waitA)
-		// {
-		// 	full.p();
-		// 	stopA.v();
-		// }
-		// else
-		// 	mutex.v();
+		mutex.v();
 	}
 
 	// TODO: Deadlock after second consumer consumes
@@ -117,38 +111,21 @@ public:
 		empty.p();
 		mutex.p();
 
-		char v;
-		v = values.front();
+		char v = values.front();
 		values.erase(values.begin());
 		print("C_" + who);
 
-		if (canConsume())
-		{
-			values.erase(values.begin());
-			print("C_" + who);
-
-			if (canA() && waitA) {
-				stopA.v();
-			}
-			else {
-				if (canB() && waitB) {
-					stopB.v();
-				}
-				else
-					mutex.v();
-			}
-		} else {
-			if (canA() && waitA) {
-				stopA.v();
-			}
-			else {
-				if (canB() && waitB) {
-					stopB.v();
-				}
-				else
-					mutex.v();
-			}
+		if (canA() && waitA) {
+			printf("Resumed process A\n");
+			stopA.v();
 		}
+		if (canB() && waitB) {
+			printf("Resumed process B\n");
+			stopB.v();
+		}
+		//else {
+			mutex.v();
+		//}
 
 		full.v();
 
@@ -163,6 +140,7 @@ void* threadProdA(void* arg)
 	for (int i = 0; i < 10; ++i)
 	{
         buffer.putA('A');
+		printf("Prod A Iters: %d\n", i + 1);
 	}
 	return NULL;
 }
@@ -172,26 +150,29 @@ void* threadProdB(void* arg)
 	for (int i = 0; i < 10; ++i)
 	{
         buffer.putB('B');
+		printf("Prod B Iters: %d\n", i + 1);
 	}
 	return NULL;
 }
 
 void* threadConsA(void* arg)
 {
-	for (int i = 0; i < 17; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		auto value = buffer.get("A");
+		printf("Cons A Iters: %d\n", i+ 1);
 	}
 	return NULL;
 }
 
 void* threadConsB(void* arg)
 {
-	for (int i = 0; i < 17; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		auto value = buffer.get("B");
+		printf("Cons B Iters: %d\n", i + 1);
 	}
 	return NULL;
 }
