@@ -3,7 +3,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
-#include "monitor.h"
+#include "../utils/monitor.h"
 
 #define consSleep() std::this_thread::sleep_for(std::chrono::milliseconds(100))
 
@@ -17,7 +17,7 @@ private:
 
 	std::vector<char> values;
 	Semaphore mutex;
-    Semaphore empty;
+    Semaphore empty, full;
 	Semaphore stopA, stopB;
 	bool waitA = false;
 	bool waitB = false;
@@ -31,7 +31,7 @@ private:
 	}
 
 public:
-	Buffer() : mutex(1), empty(0), stopA(0), stopB(0) { }
+	Buffer() : mutex(1), empty(0), full(BUFFER_SIZE), stopA(0), stopB(0) { }
 
 	inline bool canA() const noexcept
 	{
@@ -40,18 +40,24 @@ public:
 
 	inline bool canB() const noexcept
 	{
-		return values.size() > 3 && values.size() < BUFFER_SIZE;
+		return values.size() > 3;
 	}
 
 	void putA(char value)
 	{
+		full.p();
 		mutex.p();
 
 		if (!canA())
 		{
 			waitA = true;
+			// printf("Producer A is waiting, leaving CS\n");
 			mutex.v();
+			// suspend process on dedicated semaphore
 			stopA.p();
+        	// printf("Producer A resumed\n");
+			mutex.p();
+			// printf("Producer A directly resumed, entered CS\n");
 		}
 
 		waitA = false;
@@ -61,6 +67,7 @@ public:
 
 		if (canB() && waitB)
 		{
+			// printf("Resumed process B\n");
 			stopB.v();
 		}
 
@@ -69,13 +76,19 @@ public:
 
     void putB(char value)
 	{
+		full.p();
 		mutex.p();
 
 		if (!canB())
 		{
 			waitB = true;
+			// printf("Producer B is waiting, leaving CS\n");
 			mutex.v();
+			// suspend process on dedicated semaphore
 			stopB.p();
+        	// printf("Producer B resumed\n");
+			mutex.p();
+			// printf("Producer B directly resumed, entered CS\n");
 		}
 
 		waitB = false;
@@ -85,11 +98,14 @@ public:
 
 		if (canA() && waitA)
 		{
+			// printf("Resumed process A\n");
 			stopA.v();
 		}
 
 		mutex.v();
 	}
+
+	// TODO: Deadlock after second consumer consumes
 
 	char get(std::string who)
 	{
@@ -100,20 +116,20 @@ public:
 		values.erase(values.begin());
 		print("C_" + who);
 
-		if (canA() && waitA)
-		{
+		if (canA() && waitA) {
+			// printf("Resumed process A\n");
 			stopA.v();
 		}
-		else {
-			if (canB() && waitB)
-			{
-				stopB.v();
-			}
-			else {
-				mutex.v();
-			} 	
+		if (canB() && waitB) {
+			// printf("Resumed process B\n");
+			stopB.v();
 		}
-		
+		//else {
+			mutex.v();
+		//}
+
+		full.v();
+
 		return v;
 	}
 };
