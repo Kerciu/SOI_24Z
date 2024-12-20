@@ -11,16 +11,12 @@ constexpr int THREADS_ITERS = 10;
 constexpr int THREADS_COUNTS = 4;
 constexpr int BUFFER_SIZE = 9;
 
-class Buffer
+class Buffer : Monitor
 {
 private:
 
 	std::vector<char> values;
-	Semaphore mutex;
-    Semaphore empty, full;
-	Semaphore stopA, stopB;
-	bool waitA = false;
-	bool waitB = false;
+    Condition A, B, C;
 
 	void print(std::string name) const noexcept
 	{
@@ -31,7 +27,7 @@ private:
 	}
 
 public:
-	Buffer() : mutex(1), empty(0), full(BUFFER_SIZE), stopA(0), stopB(0) { }
+	Buffer() {}
 
 	inline bool canA() const noexcept
 	{
@@ -40,96 +36,68 @@ public:
 
 	inline bool canB() const noexcept
 	{
-		return values.size() > 3;
+		return values.size() > 3 && values.size() < BUFFER_SIZE;
 	}
+
+    inline bool canCons() const noexcept
+    {
+        return !values.empty();
+    }
 
 	void putA(char value)
 	{
-		full.p();
-		mutex.p();
+		this->enter();
 
-		if (!canA())
-		{
-			waitA = true;
-			// printf("Producer A is waiting, leaving CS\n");
-			mutex.v();
-			// suspend process on dedicated semaphore
-			stopA.p();
-        	// printf("Producer A resumed\n");
-			mutex.p();
-			// printf("Producer A directly resumed, entered CS\n");
-		}
+		if (!canA()) this->wait(A);
 
-		waitA = false;
 		values.push_back(value);
 		print("P_A");
-		empty.v();
 
-		if (canB() && waitB)
-		{
-			// printf("Resumed process B\n");
-			stopB.v();
-		}
+		if (canB())
+            this->signal(B);
+        
+        if (canCons())
+            this->signal(C);
 
-		mutex.v();
+		this->leave();
 	}
 
     void putB(char value)
 	{
-		full.p();
-		mutex.p();
+		this->enter();
 
-		if (!canB())
-		{
-			waitB = true;
-			// printf("Producer B is waiting, leaving CS\n");
-			mutex.v();
-			// suspend process on dedicated semaphore
-			stopB.p();
-        	// printf("Producer B resumed\n");
-			mutex.p();
-			// printf("Producer B directly resumed, entered CS\n");
-		}
+		if (!canB()) this->wait(B);
 
-		waitB = false;
 		values.push_back(value);
 		print("P_B");
-		empty.v();
 
-		if (canA() && waitA)
-		{
-			// printf("Resumed process A\n");
-			stopA.v();
-		}
+		if (canA())
+            this->signal(A);
+        
+        if (canCons())
+            this->signal(C);
 
-		mutex.v();
+		this->leave();
 	}
-
-	// TODO: Deadlock after second consumer consumes
 
 	char get(std::string who)
 	{
-		empty.p();
-		mutex.p();
+		this->enter();
+
+        if (!canCons()) this->wait(C);
 
 		char v = values.front();
 		values.erase(values.begin());
 		print("C_" + who);
 
-		if (canA() && waitA) {
-			// printf("Resumed process A\n");
-			stopA.v();
-		}
-		if (canB() && waitB) {
-			// printf("Resumed process B\n");
-			stopB.v();
-		}
-		//else {
-			mutex.v();
-		//}
+		if (canA()) {
+            this->signal(A);
+        }
+        if (canB()) {
+            this->signal(B);
+        }
 
-		full.v();
-
+        this->leave();
 		return v;
 	}
 };
