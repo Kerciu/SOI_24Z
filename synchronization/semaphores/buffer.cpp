@@ -40,12 +40,11 @@ public:
 
 	inline bool canB() const noexcept
 	{
-		return values.size() > 3;
+		return values.size() > 3 && values.size() < BUFFER_SIZE;
 	}
 
 	void putA(char value)
 	{
-		full.p();
 		mutex.p();
 
 		if (!canA())
@@ -76,7 +75,6 @@ public:
 
     void putB(char value)
 	{
-		full.p();
 		mutex.p();
 
 		if (!canB())
@@ -120,15 +118,15 @@ public:
 			// printf("Resumed process A\n");
 			stopA.v();
 		}
-		if (canB() && waitB) {
-			// printf("Resumed process B\n");
-			stopB.v();
+		else
+		{
+			if (canB() && waitB) {
+				// printf("Resumed process B\n");
+				stopB.v();
+			}
+			else
+				mutex.v();
 		}
-		//else {
-			mutex.v();
-		//}
-
-		full.v();
 
 		return v;
 	}
