@@ -17,7 +17,7 @@ private:
 
 	std::vector<char> values;
 	Semaphore mutex;
-    Semaphore empty
+    Semaphore empty;
 	Semaphore stopA, stopB;
 	bool waitA = false;
 	bool waitB = false;
