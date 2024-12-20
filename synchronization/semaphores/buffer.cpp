@@ -3,7 +3,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
-#include "monitor.h"
+#include "../utils/monitor.h"
 
 #define consSleep() std::this_thread::sleep_for(std::chrono::milliseconds(100))
 
@@ -17,7 +17,7 @@ private:
 
 	std::vector<char> values;
 	Semaphore mutex;
-    Semaphore empty;
+    Semaphore empty
 	Semaphore stopA, stopB;
 	bool waitA = false;
 	bool waitB = false;
