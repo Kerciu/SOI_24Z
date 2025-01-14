@@ -1,0 +1,22 @@
+Find file in fd_table by name:
+    if not found:
+        return false (file does not exist)
+
+Free blocks in FAT:
+    start_block = file.starting_block
+    while start_block != END_OF_CHAIN:
+        next_block = get_next_block_from_FAT(start_block)
+        mark start_block as FREE_BLOCK
+        start_block = next_block
+
+Remove file from fd_table:
+    shift remaining files in fd_table to fill gap
+    Decrement file_count
+
+Close all opened instances of file:
+    for each entry in open_file_fd_table:
+        if entry.idx == index_in_fd_table:
+            entry = {NO_OPENED_FILE, 0}
+            Decrement opened_file_count
+
+Return true (file deleted successfully)

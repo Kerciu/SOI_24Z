@@ -1,0 +1,16 @@
+if opened_file_count >= NUM_FILES:
+    return false (too many files opened)
+
+Find file in fd_table by name:
+    if not found:
+        return false (file does not exist)
+
+Find free slot in open_file_fd_table:
+    if none:
+        return false (no space for opened files)
+
+Add file to open_file_fd_table:
+    open_file_fd_table[free_slot] = {index_in_fd_table, offset=0}
+    Increment opened_file_count
+
+Return true (file opened successfully)

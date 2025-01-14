@@ -1,0 +1,26 @@
+if size > MEMORY_SIZE or size <= 0:
+    return false (invalid size)
+
+if file_count >= NUM_FILES:
+    return false (no space for new files)
+
+if file with name already exists in fd_table:
+    return false (duplicate file)
+
+blocks_needed = ceil(size / BLOCK_SIZE)
+if count_free_blocks(fat) < blocks_needed:
+    return false (not enough free space)
+
+Allocate blocks in FAT:
+    start_block = first free block
+    current_block = start_block
+    for i from 1 to blocks_needed:
+        mark current_block as used in FAT
+        find next free block
+        link current_block to next_block in FAT
+
+Add new file to fd_table:
+    fd_table[file_count] = {name, start_block, size}
+    Increment file_count
+
+Return true (file created successfully)

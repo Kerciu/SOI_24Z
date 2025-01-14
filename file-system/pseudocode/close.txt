@@ -1,0 +1,11 @@
+if file_index < 0 or file_index >= NUM_FILES:
+    return false (invalid index)
+
+if open_file_fd_table[file_index].idx == NO_OPENED_FILE:
+    return false (file not open)
+
+Close file:
+    open_file_fd_table[file_index] = {NO_OPENED_FILE, 0}
+    Decrement opened_file_count
+
+Return true (file closed successfully)

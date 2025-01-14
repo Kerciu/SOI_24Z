@@ -1,0 +1,23 @@
+if file_index < 0 or file_index >= NUM_FILES:
+    return false (invalid index)
+
+if open_file_fd_table[file_index].idx == NO_OPENED_FILE:
+    return false (file not open)
+
+Find file in fd_table using open_file_fd_table[file_index].idx:
+    if offset + size > file.size:
+        size = file.size - offset (adjust size to avoid overflow)
+
+Read data:
+    start_block = file.starting_block
+    current_offset = offset
+    bytes_to_read = size
+    while bytes_to_read > 0:
+        calculate block and offset within block
+        copy data from memory to buffer
+        update bytes_to_read and current_offset
+
+Update offset in open_file_fd_table:
+    open_file_fd_table[file_index].offset += size
+
+Return true (data read successfully)
