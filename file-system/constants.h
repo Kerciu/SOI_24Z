@@ -15,7 +15,7 @@ constexpr int MAX_NAME_SIZE = 16;
 constexpr int MIN_NAME_SIZE = 1;
 
 struct FileDescriptor {
-    char name[MAX_NAME_SIZE];
+    std::string name;
     int starting_block;
     int size;
 };
@@ -28,6 +28,7 @@ struct OpenedFile {
 typedef enum {
     FILE_CREATE_SUCCESS,
     FILE_CREATE_INVALID_SIZE,
+    FILE_CREATE_INVALID_NAME,
     FILE_CREATE_TOO_MANY_FILES,
     FILE_CREATE_DUPLICATE_FILE,
     FILE_CREATE_NO_SPACE

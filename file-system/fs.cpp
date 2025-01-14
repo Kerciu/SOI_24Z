@@ -43,10 +43,89 @@ void FileSystem::displayState() {
     }
 }
 
+bool FileSystem::duplicateName(const std::string& name)
+{
+    for (int i = 0; i < file_count; ++i) {
+        if (fd_table[i].name == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int FileSystem::countFreeBlocks()
+{
+    int free_blocks = 0;
+    for (int i = 0; i < NUM_BLOCKS; ++i) {
+        if (fat[i] == FREE_BLOCK) {
+            ++free_blocks;
+        }
+    }
+    return free_blocks;
+}
+
+int FileSystem::firstFreeBlock()
+{
+    for (int i = 0; i < NUM_BLOCKS; ++i) {
+        if (fat[i] == FREE_BLOCK) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void FileSystem::markBlockAsUsed(int block_idx)
+{
+    fat[block_idx] = END_OF_CHAIN;
+}
+
 FileCreateStatus FileSystem::create(const std::string &name, int size)
 {
     if (size > MEMORY_SIZE || size <= 0)
         return FILE_CREATE_INVALID_SIZE;
+
+    if (file_count >= NUM_FILES)
+        return FILE_CREATE_TOO_MANY_FILES;
+
+    if (name.length() > MAX_NAME_SIZE || name.length() < MIN_NAME_SIZE)
+    {
+        return FILE_CREATE_INVALID_NAME;
+    }
+    
+    if (duplicateName(name))
+        return FILE_CREATE_DUPLICATE_FILE;
+    
+    int blocks_needed = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+    if (countFreeBlocks() < blocks_needed)
+        return FILE_CREATE_NO_SPACE;
+
+    // allocate blocks in fat
+    int starting_block = firstFreeBlock();
+    if (starting_block == -1) {
+        return FILE_CREATE_NO_SPACE;
+    }
+
+    int current_block = starting_block;
+
+    for (int i = 1; i <= blocks_needed; ++i)
+    {
+        markBlockAsUsed(current_block);
+        int next_block = firstFreeBlock();
+        if (i == blocks_needed - 1) {
+            fat[current_block] = END_OF_CHAIN; // last block in chain
+        } else {
+            fat[current_block] = next_block; // link next block
+        }
+
+        current_block = next_block;
+
+    }
+
+    // add new file to file descriptor table
+    fd_table[file_count++] = {name, starting_block, size};
+
+    return FILE_CREATE_SUCCESS;
 }
 
 FileOpenStatus FileSystem::open(int ptr_idx)

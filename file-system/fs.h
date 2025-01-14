@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <cmath>
 #include "constants.h"
 
 class FileSystem {
@@ -14,9 +15,15 @@ class FileSystem {
         OpenedFile open_file_fd_table[NUM_FILES];      // idx of opened file
         int opened_file_count;
 
+        bool duplicateName(const std::string &name);
+        int countFreeBlocks();
+        int firstFreeBlock();
+        void markBlockAsUsed(int block_idx);
+
     public:
         FileSystem();
         void displayState();
+
 
         FileCreateStatus create(const std::string& name, int size);
         FileOpenStatus open(int ptr_idx);
