@@ -18,9 +18,10 @@ class FileSystem {
         FileSystem();
         void displayState();
 
-        bool create(const std::string& name, int size);
-        void open(int ptr_idx);
-        void close(int ptr_idx);
-        void read(int ptr_idx);
-        void write(int ptr_idx, const char * data, int size);
+        FileCreateStatus create(const std::string& name, int size);
+        FileOpenStatus open(int ptr_idx);
+        FileCloseStatus close(int ptr_idx);
+        FileReadStatus read(int ptr_idx);
+        FileWriteStatus write(int ptr_idx, const char * data, int size);
+        FileDeleteStatus delete_(int ptr_idx);     // delete is a c++ keyword
 };

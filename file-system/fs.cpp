@@ -16,7 +16,6 @@ FileSystem::FileSystem()
 
 }
 
-
 void FileSystem::displayState() {
     std::cout << "File System State:\n";
 
@@ -44,23 +43,33 @@ void FileSystem::displayState() {
     }
 }
 
-bool FileSystem::create(const std::string &name, int size)
+FileCreateStatus FileSystem::create(const std::string &name, int size)
 {
-    return false;
+    if (size > MEMORY_SIZE || size <= 0)
+        return FILE_CREATE_INVALID_SIZE;
 }
 
-void FileSystem::open(int ptr_idx)
+FileOpenStatus FileSystem::open(int ptr_idx)
 {
+
 }
 
-void FileSystem::close(int ptr_idx)
+FileCloseStatus FileSystem::close(int ptr_idx)
 {
+
 }
 
-void FileSystem::read(int ptr_idx)
+FileReadStatus FileSystem::read(int ptr_idx)
 {
+
 }
 
-void FileSystem::write(int ptr_idx, const char *data, int size)
+FileWriteStatus FileSystem::write(int ptr_idx, const char *data, int size)
 {
+
+}
+
+FileDeleteStatus FileSystem::delete_(int ptr_idx)
+{
+
 }
