@@ -3,5 +3,8 @@
 int main() 
 {
     FileSystem fs;
-    fs.displayState();    
+    
+    fs.displayState();
+
+    return 0;
 }
