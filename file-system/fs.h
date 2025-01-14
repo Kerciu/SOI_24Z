@@ -20,15 +20,18 @@ class FileSystem {
         int firstFreeBlock();
         void markBlockAsUsed(int block_idx);
 
+        int findOpenFileFreeSlot(int file_idx);
+        int findFileIndexByName(const std::string &name);
+
     public:
         FileSystem();
         void displayState();
 
 
-        FileCreateStatus create(const std::string& name, int size);
-        FileOpenStatus open(int ptr_idx);
-        FileCloseStatus close(int ptr_idx);
-        FileReadStatus read(int ptr_idx);
-        FileWriteStatus write(int ptr_idx, const char * data, int size);
-        FileDeleteStatus delete_(int ptr_idx);     // delete is a c++ keyword
+        FileCreateStatus create(const std::string &name, int size);
+        FileOpenStatus open(const std::string& name);
+        FileCloseStatus close(const std::string& name);
+        FileReadStatus read(const std::string& name);
+        FileWriteStatus write(const std::string& name, const std::string& data, int size);
+        FileDeleteStatus delete_(const std::string& name);     // delete is a c++ keyword
 };

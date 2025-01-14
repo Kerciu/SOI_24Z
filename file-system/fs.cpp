@@ -79,6 +79,28 @@ void FileSystem::markBlockAsUsed(int block_idx)
     fat[block_idx] = END_OF_CHAIN;
 }
 
+int FileSystem::findFileIndexByName(const std::string& name)
+{
+    for (int i = 0; i < file_count; ++i) {
+        if (fd_table[i].name == name) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+int FileSystem::findOpenFileFreeSlot(int file_idx)
+{
+    for (int i = 0; i < NUM_FILES; ++ i)
+    {
+        if (open_file_fd_table[i].idx == NO_OPENED_FILE)
+            return i;
+    }
+
+    return -1;
+}
+
 FileCreateStatus FileSystem::create(const std::string &name, int size)
 {
     if (size > MEMORY_SIZE || size <= 0)
@@ -128,27 +150,45 @@ FileCreateStatus FileSystem::create(const std::string &name, int size)
     return FILE_CREATE_SUCCESS;
 }
 
-FileOpenStatus FileSystem::open(int ptr_idx)
+
+
+FileOpenStatus FileSystem::open(const std::string& name)
+{
+    if (opened_file_count >= NUM_FILES)
+        return FILE_OPEN_TOO_MANY_FILES_OPENED;
+    
+    int file_idx = findFileIndexByName(name);
+
+    if (file_idx == -1)
+        return FILE_OPEN_DOESNT_EXIST;
+    
+    int free_slot = findOpenFileFreeSlot(file_idx);
+
+    if (free_slot == -1)
+        return FILE_OPEN_NO_SPACE_FOR_OPEN_FILES;
+
+    open_file_fd_table[free_slot] = {file_idx, 0};
+    ++opened_file_count; 
+
+    return FILE_OPEN_SUCCESS;
+}
+
+FileCloseStatus FileSystem::close(const std::string& name)
 {
 
 }
 
-FileCloseStatus FileSystem::close(int ptr_idx)
+FileReadStatus FileSystem::read(const std::string& name)
 {
 
 }
 
-FileReadStatus FileSystem::read(int ptr_idx)
+FileWriteStatus FileSystem::write(const std::string& name, const std::string& data, int size)
 {
 
 }
 
-FileWriteStatus FileSystem::write(int ptr_idx, const char *data, int size)
-{
-
-}
-
-FileDeleteStatus FileSystem::delete_(int ptr_idx)
+FileDeleteStatus FileSystem::delete_(const std::string& name)
 {
 
 }
