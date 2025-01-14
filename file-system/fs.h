@@ -23,6 +23,8 @@ class FileSystem {
         int findOpenFileFreeSlot(int file_idx);
         int findFileIndexByName(const std::string &name);
 
+        int findOpenFileIndexByName(const std::string &name);
+
     public:
         FileSystem();
         void displayState();

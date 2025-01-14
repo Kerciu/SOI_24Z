@@ -90,6 +90,19 @@ int FileSystem::findFileIndexByName(const std::string& name)
     return -1;
 }
 
+int FileSystem::findOpenFileIndexByName(const std::string& name)
+{
+    for (int i = 0; i < NUM_FILES; ++i) {
+        if (open_file_fd_table[i].idx != NO_OPENED_FILE) {
+            int file_index = open_file_fd_table[i].idx;
+            if (file_index >= 0 && file_index < file_count && fd_table[file_index].name == name) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
 int FileSystem::findOpenFileFreeSlot(int file_idx)
 {
     for (int i = 0; i < NUM_FILES; ++ i)
@@ -175,7 +188,20 @@ FileOpenStatus FileSystem::open(const std::string& name)
 
 FileCloseStatus FileSystem::close(const std::string& name)
 {
+    int file_index = findOpenFileIndexByName(name);
 
+    if (file_index == -1) {
+        return FILE_CLOSE_INVALID_INDEX;
+    }
+
+    if (open_file_fd_table[file_index].idx == NO_OPENED_FILE) {
+        return FILE_CLOSE_NOT_OPENED;
+    }
+
+    open_file_fd_table[file_index] = {NO_OPENED_FILE, 0};
+    --opened_file_count;
+
+    return FILE_CLOSE_SUCCESS;
 }
 
 FileReadStatus FileSystem::read(const std::string& name)
