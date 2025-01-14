@@ -258,3 +258,6 @@ Block 254: -1
 Block 255: -1
 
 File Descriptors:
+ - TestFile: Start=0, Size=16
+
+Opened Files:

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-make; ./fs > fs-state.txt
+make clean; make; ./fs > fs-state.txt
