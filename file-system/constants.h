@@ -3,12 +3,12 @@
 
 #include <cstdint>
 
-constexpr int BLOCK_SIZE = 16;
+constexpr int BLOCK_SIZE = 32;
 constexpr int MEMORY_SIZE = 2048;
 
 constexpr int NUM_BLOCKS = MEMORY_SIZE / BLOCK_SIZE;
-constexpr int NUM_FILES = 64;
-constexpr int NUM_OPENED_FILES = 16;
+constexpr int NUM_FILES = 16;
+constexpr int NUM_OPENED_FILES = 8;
 
 constexpr int16_t FREE_BLOCK = -1;
 constexpr int16_t NO_OPENED_FILE = -1;
