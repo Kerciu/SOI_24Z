@@ -1,28 +1,37 @@
 #ifndef FS_CONSTANTS
 #define FS_CONSTANTS
 
+#include <cstdint>
+
 constexpr int BLOCK_SIZE = 16;
-constexpr int MEMORY_SIZE = 4096;
+constexpr int MEMORY_SIZE = 2048;
 
 constexpr int NUM_BLOCKS = MEMORY_SIZE / BLOCK_SIZE;
-constexpr int NUM_FILES = NUM_BLOCKS;
+constexpr int NUM_FILES = 64;
+constexpr int NUM_OPENED_FILES = 16;
 
 constexpr int FREE_BLOCK = -1;
 constexpr int NO_OPENED_FILE = -1;
 constexpr int END_OF_CHAIN = -2;
 
-constexpr int MAX_NAME_SIZE = 16;
+constexpr int MAX_NAME_SIZE = 10;
 constexpr int MIN_NAME_SIZE = 1;
 
 struct FileDescriptor {
     std::string name;
-    int starting_block;
-    int size;
+    int16_t starting_block;
+    uint16_t size;
 };
 
 struct OpenedFile {
-    int idx;        // idx of opened file descriptor
-    int offset;     // bytes of read file contents
+    int16_t idx;        // idx of opened file descriptor
+    uint16_t offset;     // bytes of read file contents
+};
+
+struct TransactionLog {
+    bool in_progress;
+    uint8_t file_idx;
+    uint8_t last_block;
 };
 
 typedef enum {

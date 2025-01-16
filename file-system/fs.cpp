@@ -6,14 +6,14 @@ FileSystem::FileSystem()
     std::fill(fat, fat + NUM_BLOCKS, FREE_BLOCK);
     for (int i = 0; i < NUM_FILES; ++i) {
         fd_table[i] = {"", -1, 0};
+    }
+    for (int i = 9; i < NUM_OPENED_FILES; ++i) {
         open_file_fd_table[i] = {NO_OPENED_FILE, 0};
     }
     file_count = 0;
     opened_file_count = 0;
 
-    fd_table[0] = {"TestFile", 0, 16};
-    file_count ++;
-
+    transaction_log.in_progress = false;
 }
 
 void FileSystem::displayState() {
@@ -114,7 +114,7 @@ int FileSystem::findOpenFileFreeSlot(int file_idx)
     return -1;
 }
 
-FileCreateStatus FileSystem::create(const std::string &name, int size)
+FileCreateStatus FileSystem::create(const std::string &name, uint16_t size)
 {
     if (size > MEMORY_SIZE || size <= 0)
         return FILE_CREATE_INVALID_SIZE;
@@ -136,7 +136,7 @@ FileCreateStatus FileSystem::create(const std::string &name, int size)
         return FILE_CREATE_NO_SPACE;
 
     // allocate blocks in fat
-    int starting_block = firstFreeBlock();
+    int16_t starting_block = firstFreeBlock();
     if (starting_block == -1) {
         return FILE_CREATE_NO_SPACE;
     }
@@ -170,7 +170,7 @@ FileOpenStatus FileSystem::open(const std::string& name)
     if (opened_file_count >= NUM_FILES)
         return FILE_OPEN_TOO_MANY_FILES_OPENED;
     
-    int file_idx = findFileIndexByName(name);
+    int16_t file_idx = findFileIndexByName(name);
 
     if (file_idx == -1)
         return FILE_OPEN_DOESNT_EXIST;
@@ -204,7 +204,7 @@ FileCloseStatus FileSystem::close(const std::string& name)
     return FILE_CLOSE_SUCCESS;
 }
 
-FileReadStatus FileSystem::read(const std::string& name, char* buffer, int size)
+FileReadStatus FileSystem::read(const std::string& name, char* buffer, uint16_t size)
 {
     int file_idx = findFileIndexByName(name);
 
@@ -261,7 +261,7 @@ FileReadStatus FileSystem::read(const std::string& name, char* buffer, int size)
     return FILE_READ_SUCCESS;
 }
 
-FileWriteStatus FileSystem::write(const std::string& name, char* buffer, int size)
+FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_t size)
 {
     int file_idx = findFileIndexByName(name);
 

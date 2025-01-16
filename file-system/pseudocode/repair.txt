@@ -1,0 +1,9 @@
+if transaction_log.in_progress:
+
+    last_block = transaction_log.last_block
+    while last_block != -1:
+        next_block = get_fat_entry(last_block)
+        set_fat_entry(last_block, FREE_BLOCK) 
+        last_block = next_block
+
+    transaction_log.in_progress = false
