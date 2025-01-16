@@ -6,7 +6,7 @@ if open_file_fd_table[file_index].idx == NO_OPENED_FILE:
 
 transaction_log = {
     in_progress = true, file_idx = file_index,
-    last_block = -open_file_fd_table[file_index].offset
+    last_block = open_file_fd_table[file_index].offset
 }
 
 Close file:

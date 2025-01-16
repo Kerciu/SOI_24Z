@@ -143,11 +143,17 @@ FileCreateStatus FileSystem::create(const std::string &name, uint16_t size)
         return FILE_CREATE_NO_SPACE;
     }
 
+    transaction_log.in_progress = true;
+    transaction_log.file_idx = file_count;
+    transaction_log.last_block = -1;
+
     int current_block = starting_block;
 
     for (int i = 1; i <= blocks_needed; ++i)
     {
         markBlockAsUsed(current_block);
+        transaction_log.last_block = current_block;
+
         int next_block = firstFreeBlock();
         if (i == blocks_needed - 1) {
             fat[current_block] = END_OF_CHAIN; // last block in chain
@@ -161,6 +167,8 @@ FileCreateStatus FileSystem::create(const std::string &name, uint16_t size)
 
     // add new file to file descriptor table
     fd_table[file_count++] = {name, starting_block, size};
+
+    transaction_log.in_progress = false;
 
     return FILE_CREATE_SUCCESS;
 }
@@ -182,8 +190,14 @@ FileOpenStatus FileSystem::open(const std::string& name)
     if (free_slot == -1)
         return FILE_OPEN_NO_SPACE_FOR_OPEN_FILES;
 
+    transaction_log.in_progress = true;
+    transaction_log.file_idx = file_idx;
+    transaction_log.last_block = -1;
+
     open_file_fd_table[free_slot] = {file_idx, 0};
     ++opened_file_count; 
+
+    transaction_log.in_progress = false;
 
     return FILE_OPEN_SUCCESS;
 }
@@ -200,8 +214,14 @@ FileCloseStatus FileSystem::close(const std::string& name)
         return FILE_CLOSE_NOT_OPENED;
     }
 
+    transaction_log.in_progress = true;
+    transaction_log.file_idx = file_index;
+    transaction_log.last_block = open_file_fd_table[file_index].offset;
+
     open_file_fd_table[file_index] = {NO_OPENED_FILE, 0};
     --opened_file_count;
+
+    transaction_log.in_progress = false;
 
     return FILE_CLOSE_SUCCESS;
 }
@@ -328,7 +348,11 @@ FileDeleteStatus FileSystem::delete_(const std::string& name)
     int file_idx = findFileIndexByName(name);
     if (file_idx == -1)
         return FILE_DELETE_DOESNT_EXIST;
-    
+
+    transaction_log.in_progress = true;
+    transaction_log.file_idx = file_idx;
+    transaction_log.last_block = fd_table[file_idx].starting_block;
+
     int next_block;
     int start_block = fd_table[file_idx].starting_block;
     while (start_block != END_OF_CHAIN) {
@@ -350,6 +374,8 @@ FileDeleteStatus FileSystem::delete_(const std::string& name)
             --opened_file_count;
         }
     }
+
+    transaction_log.in_progress = false;
 
     return FILE_DELETE_SUCCESS;
 }
