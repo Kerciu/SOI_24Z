@@ -34,6 +34,6 @@ class FileSystem {
         FileOpenStatus open(const std::string& name);
         FileCloseStatus close(const std::string& name);
         FileReadStatus read(const std::string& name, char* buffer, int size);
-        FileWriteStatus write(const std::string& name, const std::string& data, int size);
+        FileWriteStatus write(const std::string& name, char* buffer, int size);
         FileDeleteStatus delete_(const std::string& name);     // delete is a c++ keyword
 };
