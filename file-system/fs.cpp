@@ -116,6 +116,69 @@ int FileSystem::findOpenFileFreeSlot(int file_idx)
     return -1;
 }
 
+void FileSystem::reopenOpenedFiles()
+{
+    for (int i = 0; i < NUM_OPENED_FILES; ++i) {
+        if (open_file_fd_table[i].idx != NO_OPENED_FILE) {
+            int file_idx = open_file_fd_table[i].idx;
+            std::cout << "Closing unclosed file: " << fd_table[file_idx].name << "\n";
+            open_file_fd_table[i] = {NO_OPENED_FILE, 0};
+            --opened_file_count;
+        }
+    }
+}
+
+void FileSystem::repairInconsistencies()
+{
+    for (int i = 0; i < NUM_BLOCKS; ++i) {
+        if (fat[i] == FREE_BLOCK) {
+            bool in_use = false;
+            for (int j = 0; j < NUM_FILES; ++j) {
+                if (fd_table[j].starting_block == i) {
+                    in_use = true;
+                    break;
+                }
+            }
+
+            if (!in_use) {
+                fat[i] = FREE_BLOCK;
+            }
+        }
+    }
+}
+
+void FileSystem::transactionRollback()
+{
+    int file_idx = transaction_log.file_idx;
+    int last_block = transaction_log.last_block;
+
+    if (last_block != -1) {
+        int block_idx = fd_table[file_idx].starting_block;
+        while (block_idx != END_OF_CHAIN) {
+            fat[block_idx] = FREE_BLOCK;
+            block_idx = fat[block_idx];
+        }
+    }
+
+    transaction_log.in_progress = false;
+}
+
+void FileSystem::repair()
+{
+    std::cout << "Repairing file system...\n";
+
+    if (transaction_log.in_progress) {
+        std::cout << "Transaction in progress, attempting rollback...\n";
+
+        transactionRollback();
+    }
+
+    repairInconsistencies();
+    reopenOpenedFiles();
+
+    std::cout << "File system repair completed.\n";
+}
+
 FileCreateStatus FileSystem::create(const std::string &name, uint16_t size)
 {
     if (size > MEMORY_SIZE || size <= 0)
@@ -128,10 +191,10 @@ FileCreateStatus FileSystem::create(const std::string &name, uint16_t size)
     {
         return FILE_CREATE_INVALID_NAME;
     }
-    
+
     if (duplicateName(name))
         return FILE_CREATE_DUPLICATE_FILE;
-    
+
     int blocks_needed = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     if (countFreeBlocks() < blocks_needed)
@@ -179,12 +242,12 @@ FileOpenStatus FileSystem::open(const std::string& name)
 {
     if (opened_file_count >= NUM_FILES)
         return FILE_OPEN_TOO_MANY_FILES_OPENED;
-    
+
     int16_t file_idx = findFileIndexByName(name);
 
     if (file_idx == -1)
         return FILE_OPEN_DOESNT_EXIST;
-    
+
     int free_slot = findOpenFileFreeSlot(file_idx);
 
     if (free_slot == -1)
@@ -195,7 +258,7 @@ FileOpenStatus FileSystem::open(const std::string& name)
     transaction_log.last_block = -1;
 
     open_file_fd_table[free_slot] = {file_idx, 0};
-    ++opened_file_count; 
+    ++opened_file_count;
 
     transaction_log.in_progress = false;
 
@@ -232,10 +295,10 @@ FileReadStatus FileSystem::read(const std::string& name, char* buffer, uint16_t 
 
     if (file_idx == -1)
         return FILE_READ_INVALID_INDEX;
-    
+
     if (open_file_fd_table[file_idx].idx == NO_OPENED_FILE)
         return FILE_READ_NOT_OPEN;
-    
+
     int fd_index = open_file_fd_table[file_idx].idx;
     FileDescriptor& file = fd_table[fd_index];
 
@@ -289,10 +352,10 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_
 
     if (file_idx == -1)
         return FILE_WRITE_INVALID_INDEX;
-    
+
     if (open_file_fd_table[file_idx].idx == NO_OPENED_FILE)
         return FILE_WRITE_NOT_OPENED;
-    
+
     int fd_index = open_file_fd_table[file_idx].idx;
     FileDescriptor& file = fd_table[fd_index];
 

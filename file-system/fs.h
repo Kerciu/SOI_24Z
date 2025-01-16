@@ -9,7 +9,7 @@ class FileSystem {
     private:
         char memory[MEMORY_SIZE];
         int16_t fat[NUM_BLOCKS];
-        
+
         FileDescriptor fd_table[NUM_FILES];
         uint8_t file_count;
 
@@ -32,6 +32,7 @@ class FileSystem {
         FileSystem();
         void displayState();
 
+        void repair();
         FileCreateStatus create(const std::string &name, uint16_t size);
         FileOpenStatus open(const std::string& name);
         FileCloseStatus close(const std::string& name);
