@@ -10,9 +10,9 @@ constexpr int NUM_BLOCKS = MEMORY_SIZE / BLOCK_SIZE;
 constexpr int NUM_FILES = 64;
 constexpr int NUM_OPENED_FILES = 16;
 
-constexpr int FREE_BLOCK = -1;
-constexpr int NO_OPENED_FILE = -1;
-constexpr int END_OF_CHAIN = -2;
+constexpr int16_t FREE_BLOCK = -1;
+constexpr int16_t NO_OPENED_FILE = -1;
+constexpr int16_t END_OF_CHAIN = -2;
 
 constexpr int MAX_NAME_SIZE = 10;
 constexpr int MIN_NAME_SIZE = 1;

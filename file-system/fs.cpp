@@ -7,7 +7,7 @@ FileSystem::FileSystem()
     for (int i = 0; i < NUM_FILES; ++i) {
         fd_table[i] = {"", -1, 0};
     }
-    for (int i = 9; i < NUM_OPENED_FILES; ++i) {
+    for (int i = 0; i < NUM_OPENED_FILES; ++i) {
         open_file_fd_table[i] = {NO_OPENED_FILE, 0};
     }
     file_count = 0;
@@ -32,7 +32,7 @@ void FileSystem::displayState() {
     }
 
     std::cout << "\nOpened Files:\n";
-    for (int i = 0; i < NUM_FILES; ++i) {
+    for (int i = 0; i < NUM_OPENED_FILES; ++i) {
         if (open_file_fd_table[i].idx != NO_OPENED_FILE) {
             int idx = open_file_fd_table[i].idx;
             if (idx >= 0 && idx < file_count) {
