@@ -1,5 +1,7 @@
 #include "fs.h"
 
+#define EMPTY_FD {"", -1, 0}
+
 FileSystem::FileSystem()
 {
     std::memset(memory, 0, sizeof(memory));
@@ -339,6 +341,8 @@ FileDeleteStatus FileSystem::delete_(const std::string& name)
         fd_table[i] = fd_table[i + 1];
     }
     --file_count;
+
+    fd_table[file_count] = EMPTY_FD;
 
     for (int i = 0; i < opened_file_count; i++) {
         if (open_file_fd_table[i].idx == file_idx) {
