@@ -323,5 +323,29 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, int siz
 
 FileDeleteStatus FileSystem::delete_(const std::string& name)
 {
+    int file_idx = findFileIndexByName(name);
+    if (file_idx == -1)
+        return FILE_DELETE_DOESNT_EXIST;
+    
+    int next_block;
+    int start_block = fd_table[file_idx].starting_block;
+    while (start_block != END_OF_CHAIN) {
+        next_block = fat[start_block];
+        fat[start_block] = FREE_BLOCK;
+        start_block = next_block;
+    }
 
+    for (int i = 0; i < file_count; ++i) {
+        fd_table[i] = fd_table[i + 1];
+    }
+    --file_count;
+
+    for (int i = 0; i < opened_file_count; i++) {
+        if (open_file_fd_table[i].idx == file_idx) {
+            open_file_fd_table[i] = {NO_OPENED_FILE, 0}; // if opened set as closed
+            --opened_file_count;
+        }
+    }
+
+    return FILE_DELETE_SUCCESS;
 }
