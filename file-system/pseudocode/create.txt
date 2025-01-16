@@ -11,16 +11,21 @@ blocks_needed = ceil(size / BLOCK_SIZE)
 if count_free_blocks(fat) < blocks_needed:
     return false (not enough free space)
 
+transaction_log = {in_progress = true, file_idx = file_count, last_block = -1}
+
 Allocate blocks in FAT:
     start_block = first free block
     current_block = start_block
     for i from 1 to blocks_needed:
         mark current_block as used in FAT
+        transaction_log.last_block = current_block;
         find next free block
         link current_block to next_block in FAT
 
 Add new file to fd_table:
     fd_table[file_count] = {name, start_block, size}
     Increment file_count
+
+transaction_log.in_progress = false;
 
 Return true (file created successfully)

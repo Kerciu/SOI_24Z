@@ -1,6 +1,11 @@
 Find file in fd_table by name:
     if not found:
         return false (file does not exist)
+    
+transaction_log = {
+    in_progress = true, file_idx = this_file_idx,
+    last_block = fd_table[file_idx].starting_block
+}
 
 Free blocks in FAT:
     start_block = file.starting_block
@@ -18,5 +23,7 @@ Close all opened instances of file:
         if entry.idx == index_in_fd_table:
             entry = {NO_OPENED_FILE, 0}
             Decrement opened_file_count
+
+transaction_log.in_progress = false;
 
 Return true (file deleted successfully)

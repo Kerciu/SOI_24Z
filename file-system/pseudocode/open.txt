@@ -9,8 +9,12 @@ Find free slot in open_file_fd_table:
     if none:
         return false (no space for opened files)
 
+transaction_log = {in_progress = true, file_idx = file_idx, last_block = -1}
+
 Add file to open_file_fd_table:
     open_file_fd_table[free_slot] = {index_in_fd_table, offset=0}
     Increment opened_file_count
+
+transaction_log.in_progress = false;
 
 Return true (file opened successfully)

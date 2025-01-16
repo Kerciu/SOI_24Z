@@ -4,8 +4,15 @@ if file_index < 0 or file_index >= NUM_FILES:
 if open_file_fd_table[file_index].idx == NO_OPENED_FILE:
     return false (file not open)
 
+transaction_log = {
+    in_progress = true, file_idx = file_index,
+    last_block = -open_file_fd_table[file_index].offset
+}
+
 Close file:
     open_file_fd_table[file_index] = {NO_OPENED_FILE, 0}
     Decrement opened_file_count
+
+transaction_log.in_progress = false;
 
 Return true (file closed successfully)
