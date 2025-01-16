@@ -204,14 +204,121 @@ FileCloseStatus FileSystem::close(const std::string& name)
     return FILE_CLOSE_SUCCESS;
 }
 
-FileReadStatus FileSystem::read(const std::string& name)
+FileReadStatus FileSystem::read(const std::string& name, char* buffer, int size)
 {
+    int file_idx = findFileIndexByName(name);
 
+    if (file_idx == -1)
+        return FILE_READ_INVALID_INDEX;
+    
+    if (open_file_fd_table[file_idx].idx == NO_OPENED_FILE)
+        return FILE_READ_NOT_OPEN;
+    
+    int fd_index = open_file_fd_table[file_idx].idx;
+    FileDescriptor& file = fd_table[fd_index];
+
+    int offset = open_file_fd_table[file_idx].offset;
+    if (offset + size > file.size)
+    {
+        size = file.size - offset;  // adjust
+    }
+
+    int bytes_to_read = size;
+    int current_offset = offset;
+    int buffer_idx = 0;
+
+    int block_idx = file.starting_block;
+    int block_offset = 0;
+
+    while (current_offset >= BLOCK_SIZE)
+    {
+        block_idx = fat[block_idx];     // next block in fat
+        current_offset -= BLOCK_SIZE;
+    }
+    block_offset = current_offset;
+
+    while (bytes_to_read > 0)
+    {
+        int bytes_in_block = std::min(BLOCK_SIZE - block_offset, bytes_to_read);
+
+        std::memcpy(buffer + buffer_idx, memory + (block_idx * BLOCK_SIZE) + block_offset, bytes_in_block);
+
+        buffer_idx += bytes_in_block;
+        bytes_to_read -= bytes_in_block;
+        block_offset = 0;
+
+         // go to the next block if there are any data left to read
+        if (bytes_to_read > 0) {
+            block_idx = fat[block_idx];
+            if (block_idx == END_OF_CHAIN) {
+                break; // unexcpected end of file in chain
+            }
+        }
+    }
+
+    open_file_fd_table[file_idx].offset += size;
+
+    return FILE_READ_SUCCESS;
 }
 
-FileWriteStatus FileSystem::write(const std::string& name, const std::string& data, int size)
+FileWriteStatus FileSystem::write(const std::string& name, char* buffer, int size)
 {
+    int file_idx = findFileIndexByName(name);
 
+    if (file_idx == -1)
+        return FILE_WRITE_INVALID_INDEX;
+    
+    if (open_file_fd_table[file_idx].idx == NO_OPENED_FILE)
+        return FILE_WRITE_NOT_OPENED;
+    
+    int fd_index = open_file_fd_table[file_idx].idx;
+    FileDescriptor& file = fd_table[fd_index];
+
+    int offset = open_file_fd_table[file_idx].offset;
+    if (offset + size > file.size)
+    {
+        FILE_WRITE_EXCEEDS_FILE_SIZE;
+    }
+
+    int bytes_to_write = size;
+    int current_offset = offset;
+    int buffer_idx = 0;
+
+    int block_idx = file.starting_block;
+    int block_offset = 0;
+
+    while (current_offset >= BLOCK_SIZE)
+    {
+        block_idx = fat[block_idx];     // next block in fat
+        if (block_idx == END_OF_CHAIN)
+            return FILE_WRITE_EXCEEDS_FILE_SIZE; // unexpected end of chain
+        current_offset -= BLOCK_SIZE;
+    }
+
+    block_offset = current_offset;
+
+    while (bytes_to_write > 0)
+    {
+        int bytes_in_block = std::min(BLOCK_SIZE - block_offset, bytes_to_write);
+
+        std::memcpy(memory + (block_idx * BLOCK_SIZE) + block_offset, buffer + buffer_idx, bytes_in_block);
+
+        buffer_idx += bytes_in_block;
+        bytes_to_write -= bytes_in_block;
+        block_offset = 0;
+
+         // go to the next block if there are any data left to read
+        if (bytes_to_write > 0) {
+            block_idx = fat[block_idx];
+            if (block_idx == END_OF_CHAIN) {
+                break; // unexcpected end of file in chain
+            }
+        }
+    }
+
+    open_file_fd_table[file_idx].offset += size;
+
+    return FILE_WRITE_SUCCESS;
 }
 
 FileDeleteStatus FileSystem::delete_(const std::string& name)
