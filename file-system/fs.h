@@ -50,9 +50,11 @@ class FileSystem {
         void displayInitialVals();
     public:
         FileSystem();
+
+        bool malfunction_flag;
         void displayState();
 
-        FileCreateStatus create(const std::string &name, int16_t size);
+        FileCreateStatus create(const std::string &name, int16_t size = 0);
         FileOpenStatus open(const std::string& name);
         FileCloseStatus close(const std::string& name);
         FileReadStatus read(const std::string& name, char* buffer, int16_t size);

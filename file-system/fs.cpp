@@ -8,6 +8,7 @@ FileSystem::FileSystem()
 {
     try {
         restoreFromDisk();
+        std::cout << "Restored in_progress flag: ", transaction_log.in_progress, "\n";
         repair();
     } catch (const std::exception& e)
     {
@@ -37,11 +38,8 @@ FileSystem::FileSystem()
     saveToDisk();
 }
 
-FileCreateStatus FileSystem::create(const std::string &name, int16_t size = 0)
+FileCreateStatus FileSystem::create(const std::string &name, int16_t size)
 {
-    if (size > MEMORY_SIZE || size < 0)
-        return FILE_CREATE_INVALID_SIZE;
-
     if (file_count >= NUM_FILES)
         return FILE_CREATE_TOO_MANY_FILES;
 
@@ -60,15 +58,20 @@ FileCreateStatus FileSystem::create(const std::string &name, int16_t size = 0)
 
     // allocate blocks in fat
     int16_t starting_block = firstFreeBlock();
+
     if (starting_block == -1) {
         return FILE_CREATE_NO_SPACE;
     }
-
+    
     transaction_log.in_progress = true;
     transaction_log.file_idx = file_count;
     transaction_log.last_valid_block = -1;
 
     int current_block = starting_block;
+    if (size == 0) {
+        markBlockAsUsed(current_block);
+        transaction_log.last_valid_block = current_block;
+    }
 
     for (int i = 1; i <= blocks_needed; ++i)
     {
@@ -95,8 +98,6 @@ FileCreateStatus FileSystem::create(const std::string &name, int16_t size = 0)
 
     return FILE_CREATE_SUCCESS;
 }
-
-
 
 FileOpenStatus FileSystem::open(const std::string& name)
 {
@@ -220,6 +221,7 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, int16_t
         transaction_log.new_size = new_size;
         transaction_log.last_valid_block = file.starting_block;
         transaction_log.first_new_block = -1;
+        saveTransactionLogsToDisk();
 
         int additional_blocks_needed = (new_size + BLOCK_SIZE - 1) / BLOCK_SIZE -
                                        (file.size + BLOCK_SIZE - 1) / BLOCK_SIZE;
@@ -236,10 +238,15 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, int16_t
             while (fat[last_block] != END_OF_CHAIN)
                 last_block = fat[last_block];
 
-            if (transaction_log.first_new_block == -1)
+            if (transaction_log.first_new_block == -1) {
                 transaction_log.first_new_block = new_block;
+                saveTransactionLogsToDisk();
+            }
 
             fat[last_block] = new_block;
+
+            if (this->malfunction_flag)  {std::cout << "Malfunction !!!\n"; std::terminate();}
+
             fat[new_block] = END_OF_CHAIN;
         }
 

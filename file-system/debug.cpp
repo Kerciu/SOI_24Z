@@ -44,18 +44,9 @@ void FileSystem::displayInitialVals()
 void FileSystem::displayState() {
     std::cout << "File System State:\n";
 
-    bool startOfFile = false;
     std::cout << "FAT Table:\n";
     for (int i = 0; i < NUM_BLOCKS; ++i) {
-        std::cout << "Block " << i << ": " << fat[i];
-        for (int j = 0; j < NUM_FILES; ++j) {
-            if (fd_table[j].starting_block == i) {
-                std::cout << " -> Start of file " << fd_table[j].name << "with size of " << fd_table[j].size << "\n";
-                startOfFile = true;
-            }
-        }
-        if (!startOfFile) std::cout << "\n";
-        startOfFile = false;
+        std::cout << "Block " << i << ": " << fat[i] << "\n";
     }
 
     std::cout << "\nFile Descriptors:\n";
