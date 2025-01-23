@@ -24,8 +24,9 @@ class FileSystem {
         void markBlockAsUsed(int block_idx);
 
         int findOpenFileFreeSlot(int file_idx);
-        void reopenOpenedFiles();
-        void repairInconsistencies();
+        void restoreOriginalFileSize();
+        void clearNewAllocatedBlocks();
+        void clearTransactionLog();
         void transactionRollback();
         int findFileIndexByName(const std::string &name);
 

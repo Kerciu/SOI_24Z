@@ -125,51 +125,52 @@ int FileSystem::findOpenFileFreeSlot(int file_idx)
     return -1;
 }
 
-void FileSystem::reopenOpenedFiles()
+void FileSystem::restoreOriginalFileSize()
 {
-    for (int i = 0; i < NUM_OPENED_FILES; ++i) {
-        if (open_file_fd_table[i].idx != NO_OPENED_FILE) {
-            int file_idx = open_file_fd_table[i].idx;
-            std::cout << "Closing unclosed file: " << fd_table[file_idx].name << "\n";
-            open_file_fd_table[i] = {NO_OPENED_FILE, 0};
-            --opened_file_count;
+    if (transaction_log.file_idx != -1 && transaction_log.last_valid_block != -1) {
+        fd_table[transaction_log.file_idx].size =
+            (transaction_log.last_valid_block + 1) * BLOCK_SIZE;
+    }
+}
+
+void FileSystem::clearNewAllocatedBlocks()
+{
+    if (transaction_log.first_new_block != -1) {
+        int block_idx = transaction_log.first_new_block;
+        while (block_idx != -1 && block_idx != END_OF_CHAIN) {
+            int next_block = fat[block_idx];
+            fat[block_idx] = FREE_BLOCK;
+            block_idx = next_block;
         }
     }
 }
 
-void FileSystem::repairInconsistencies()
+void FileSystem::clearTransactionLog()
 {
-    for (int i = 0; i < NUM_BLOCKS; ++i) {
-        if (fat[i] == FREE_BLOCK) {
-            bool in_use = false;
-            for (int j = 0; j < NUM_FILES; ++j) {
-                if (fd_table[j].starting_block == i) {
-                    in_use = true;
-                    break;
-                }
-            }
-
-            if (!in_use) {
-                fat[i] = FREE_BLOCK;
-            }
-        }
-    }
+    transaction_log.in_progress = false;
+    transaction_log.file_idx = -1;
+    transaction_log.new_size = 0;
+    transaction_log.last_valid_block = -1;
+    transaction_log.first_new_block = -1;
 }
 
 void FileSystem::transactionRollback()
 {
-    int file_idx = transaction_log.file_idx;
-    int last_block = transaction_log.last_block;
+    if (!transaction_log.in_progress)
+        return;
 
-    if (last_block != -1) {
-        int block_idx = fd_table[file_idx].starting_block;
-        while (block_idx != END_OF_CHAIN) {
-            fat[block_idx] = FREE_BLOCK;
-            block_idx = fat[block_idx];
-        }
+    // restore original file size
+    restoreOriginalFileSize();
+
+    // clear new allocated blocks
+    clearNewAllocatedBlocks();
+
+    // restore end of chain for the last valid block
+    if (transaction_log.last_valid_block != -1) {
+        fat[transaction_log.last_valid_block] = END_OF_CHAIN;
     }
 
-    transaction_log.in_progress = false;
+    clearTransactionLog();
 }
 
 void FileSystem::repair()
@@ -181,10 +182,6 @@ void FileSystem::repair()
 
         transactionRollback();
     }
-
-    // repairInconsistencies();
-    // reopenOpenedFiles();
-
     std::cout << "File system repair completed.\n";
 }
 
@@ -217,14 +214,14 @@ FileCreateStatus FileSystem::create(const std::string &name, uint16_t size = 0)
 
     transaction_log.in_progress = true;
     transaction_log.file_idx = file_count;
-    transaction_log.last_block = -1;
+    transaction_log.last_valid_block = -1;
 
     int current_block = starting_block;
 
     for (int i = 1; i <= blocks_needed; ++i)
     {
         markBlockAsUsed(current_block);
-        transaction_log.last_block = current_block;
+        transaction_log.last_valid_block = current_block;
 
         int next_block = firstFreeBlock();
         if (i == blocks_needed) {
@@ -264,7 +261,7 @@ FileOpenStatus FileSystem::open(const std::string& name)
 
     transaction_log.in_progress = true;
     transaction_log.file_idx = file_idx;
-    transaction_log.last_block = -1;
+    transaction_log.last_valid_block = -1;
 
     open_file_fd_table[free_slot] = {file_idx, 0};
     ++opened_file_count;
@@ -288,7 +285,7 @@ FileCloseStatus FileSystem::close(const std::string& name)
 
     transaction_log.in_progress = true;
     transaction_log.file_idx = file_index;
-    transaction_log.last_block = open_file_fd_table[file_index].offset;
+    transaction_log.last_valid_block = open_file_fd_table[file_index].offset;
 
     open_file_fd_table[file_index] = {NO_OPENED_FILE, 0};
     --opened_file_count;
@@ -312,6 +309,10 @@ FileReadStatus FileSystem::read(const std::string& name, char* buffer, uint16_t 
     FileDescriptor& file = fd_table[fd_index];
 
     int offset = open_file_fd_table[file_idx].offset;
+    if (offset > file.size) {
+        return FILE_READ_EOF;
+    }
+
     if (offset + size > file.size)
     {
         size = file.size - offset;  // adjust
@@ -372,6 +373,12 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_
     int new_size = offset + size;
     if (new_size > file.size)
     {
+        transaction_log.in_progress = true;
+        transaction_log.file_idx = file_idx;
+        transaction_log.new_size = new_size;
+        transaction_log.last_valid_block = file.starting_block;
+        transaction_log.first_new_block = -1;
+
         // dodac do logow nowy rozmiar, indeks ostatniej j.a. i index nowej j.a.
         int additional_blocks_needed = (new_size + BLOCK_SIZE - 1) / BLOCK_SIZE -
                                        (file.size + BLOCK_SIZE - 1) / BLOCK_SIZE;
@@ -380,17 +387,22 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_
         {
             int new_block = firstFreeBlock();
             if (new_block == -1)
+                transactionRollback();
                 return FILE_WRITE_NO_SPACE;
 
             int last_block = file.starting_block;
             while (fat[last_block] != END_OF_CHAIN)
                 last_block = fat[last_block];
 
+            if (transaction_log.first_new_block == -1)
+                transaction_log.first_new_block = new_block;
+
             fat[last_block] = new_block;
             fat[new_block] = END_OF_CHAIN;
         }
 
         file.size = new_size;
+        transaction_log.in_progress = false;
     }
 
     int bytes_to_write = size;
@@ -442,7 +454,7 @@ FileDeleteStatus FileSystem::delete_(const std::string& name)
 
     transaction_log.in_progress = true;
     transaction_log.file_idx = file_idx;
-    transaction_log.last_block = fd_table[file_idx].starting_block;
+    transaction_log.last_valid_block = fd_table[file_idx].starting_block;
 
     int next_block;
     int start_block = fd_table[file_idx].starting_block;

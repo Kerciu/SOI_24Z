@@ -31,7 +31,9 @@ struct OpenedFile {
 struct TransactionLog {
     bool in_progress;
     uint8_t file_idx;
-    uint8_t last_block;
+    int new_size;
+    uint8_t last_valid_block;
+    uint8_t first_new_block;
 };
 
 typedef enum {
@@ -59,7 +61,8 @@ typedef enum {
 typedef enum {
     FILE_READ_SUCCESS,
     FILE_READ_INVALID_INDEX,
-    FILE_READ_NOT_OPEN
+    FILE_READ_NOT_OPEN,
+    FILE_READ_EOF,
 } FileReadStatus;
 
 typedef enum {
@@ -67,7 +70,8 @@ typedef enum {
     FILE_WRITE_INVALID_INDEX,
     FILE_WRITE_NOT_OPENED,
     FILE_WRITE_EXCEEDS_FILE_SIZE,
-    FILE_WRITE_NO_SPACE
+    FILE_WRITE_NO_SPACE,
+    FILE_WRITE_ERROR
 } FileWriteStatus;
 
 typedef enum {

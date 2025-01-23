@@ -159,11 +159,11 @@ Opened Files:
  - file2: Offset=0
 
 Writing to file 'file1':
-Data written to 'file1'
+Error while writing to 'file1'
 File System State:
 FAT Table:
-Block 0: 1 -> Start of file file1with size of 66
-Block 1: 9
+Block 0: 1 -> Start of file file1with size of 40
+Block 1: -2
 Block 2: 3 -> Start of file file2with size of 64
 Block 3: -2
 Block 4: -2 -> Start of file file3with size of 27
@@ -171,7 +171,7 @@ Block 5: 6 -> Start of file file4with size of 128
 Block 6: 7
 Block 7: 8
 Block 8: -2
-Block 9: -2
+Block 9: -1
 Block 10: -1
 Block 11: -1
 Block 12: -1
@@ -228,21 +228,21 @@ Block 62: -1
 Block 63: -1
 
 File Descriptors:
- - file1: Start=0, Size=66
+ - file1: Start=0, Size=40
  - file2: Start=2, Size=64
  - file3: Start=4, Size=27
  - file4: Start=5, Size=128
 
 Opened Files:
- - file1: Offset=66
+ - file1: Offset=0
  - file2: Offset=0
 
 Reading from file 'file1':
-Data read from 'file1': Hello, FileSystem!, my name is kacper and i eat a 
+Data read from 'file1': 
 File System State:
 FAT Table:
-Block 0: 1 -> Start of file file1with size of 66
-Block 1: 9
+Block 0: 1 -> Start of file file1with size of 40
+Block 1: -2
 Block 2: 3 -> Start of file file2with size of 64
 Block 3: -2
 Block 4: -2 -> Start of file file3with size of 27
@@ -250,7 +250,7 @@ Block 5: 6 -> Start of file file4with size of 128
 Block 6: 7
 Block 7: 8
 Block 8: -2
-Block 9: -2
+Block 9: -1
 Block 10: -1
 Block 11: -1
 Block 12: -1
@@ -307,21 +307,21 @@ Block 62: -1
 Block 63: -1
 
 File Descriptors:
- - file1: Start=0, Size=66
+ - file1: Start=0, Size=40
  - file2: Start=2, Size=64
  - file3: Start=4, Size=27
  - file4: Start=5, Size=128
 
 Opened Files:
- - file1: Offset=50
+ - file1: Offset=40
  - file2: Offset=0
 
 Closing files:
 File 'file1' closed successfully
 File System State:
 FAT Table:
-Block 0: 1 -> Start of file file1with size of 66
-Block 1: 9
+Block 0: 1 -> Start of file file1with size of 40
+Block 1: -2
 Block 2: 3 -> Start of file file2with size of 64
 Block 3: -2
 Block 4: -2 -> Start of file file3with size of 27
@@ -329,7 +329,7 @@ Block 5: 6 -> Start of file file4with size of 128
 Block 6: 7
 Block 7: 8
 Block 8: -2
-Block 9: -2
+Block 9: -1
 Block 10: -1
 Block 11: -1
 Block 12: -1
@@ -386,7 +386,7 @@ Block 62: -1
 Block 63: -1
 
 File Descriptors:
- - file1: Start=0, Size=66
+ - file1: Start=0, Size=40
  - file2: Start=2, Size=64
  - file3: Start=4, Size=27
  - file4: Start=5, Size=128
@@ -399,7 +399,7 @@ File 'file3' deleted successfully
 File System State:
 FAT Table:
 Block 0: 1
-Block 1: 9
+Block 1: -2
 Block 2: 3 -> Start of file file2with size of 64
 Block 3: -2
 Block 4: -1 -> Start of file file3with size of 27
@@ -407,7 +407,7 @@ Block 5: 6 -> Start of file file4with size of 128
 Block 6: 7
 Block 7: 8
 Block 8: -2
-Block 9: -2
+Block 9: -1
 Block 10: -1
 Block 11: -1
 Block 12: -1
