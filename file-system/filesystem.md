@@ -12,7 +12,7 @@ Jasne, oto sprawozdanie sformatowane tak, aby kod C++ i pseudokod były czytelni
 
 ### System plików z alokacją łańcuchową
 
-<img title="a title" alt="Alt text" src="/images/image.png">
+![Chain Alloc File System](./images/image.png)
 
 ### Założenia Projektowe
 - Alokacja łańcuchowa z wykorzystaniem tabeli FAT.
@@ -103,20 +103,19 @@ Jasne, oto sprawozdanie sformatowane tak, aby kod C++ i pseudokod były czytelni
 
 | **Element**                                     | **Rozmiar**                                               |
 | ----------------------------------------------- | --------------------------------------------------------- |
-| char memory[MEMORY_SIZE]                        | MEMORY_SIZE = 2048                                        |
 | int16_t fat[NUM_BLOCKS]                         | NUM_BLOCKS = 64, Rozmiar FAT = 64 \* 2 = 128 bajtów       |
-| FileDescriptor fd_table[NUM_FILES]              | NUM_FILES = 16, FileDescriptor = ~16 × 16 = 256 bajtów    |
-| OpenedFile open_file_fd_table[NUM_OPENED_FILES] | NUM_OPENED_FILES = 8, OpenedFile ~ 4 bajty × 8 = 32 bajty |
-| TransactionLog transaction_log                  | 1 + 1 + 1 = 3                                             |
+| FileDescriptor fd_table[NUM_FILES]              | NUM_FILES = 16, FileDescriptor = ~14 × 16 = 224 bajtów    |
+| int16_t file_count                              | 2 bajty                                                   |
+| TransactionLog transaction_log                  | 1 + 4 * 2 = 9 bajtów                                      |
 
 **Całkowita pamięć:**
 
-- Rozmiar danych użytkownika (tablica memory) = 2048 bajtów
-- Całkowita pamięć = rozmiar danych użytkownika + 128 + 256 + 32 + 3 = 2467 bajtów
+- Rozmiar danych użytkownika = 2048 bajtów
+- Część pamięci wykorzystane przez pola karty =  bajtów
 
 **Wyliczona procentowo efektywność wykorzystania pamięci:**
 
-- \( \frac{2048}{2467} \times 100\% \approx 82,68\% \)
+- \( \frac{1685}{2048} \times 100\% \approx 82,28\% \)
 
 ---
 
