@@ -6,7 +6,9 @@ if open_file_fd_table[file_index].idx == NO_OPENED_FILE:
 
 Find file in fd_table using open_file_fd_table[file_index].idx:
     if offset + size > file.size:
-        return false (write exceeds file size)
+        new_size = offset + size
+        extendChain
+        adjust new file size
 
 Write data:
     start_block = file.starting_block

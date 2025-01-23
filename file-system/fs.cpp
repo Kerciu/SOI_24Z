@@ -21,9 +21,18 @@ FileSystem::FileSystem()
 void FileSystem::displayState() {
     std::cout << "File System State:\n";
 
+    bool startOfFile = false;
     std::cout << "FAT Table:\n";
     for (int i = 0; i < NUM_BLOCKS; ++i) {
-        std::cout << "Block " << i << ": " << fat[i] << "\n";
+        std::cout << "Block " << i << ": " << fat[i];
+        for (int j = 0; j < NUM_FILES; ++j) {
+            if (fd_table[j].starting_block == i) {
+                std::cout << " -> Start of file " << fd_table[j].name << "with size of " << fd_table[j].size << "\n";
+                startOfFile = true;
+            }
+        }
+        if (!startOfFile) std::cout << "\n";
+        startOfFile = false;
     }
 
     std::cout << "\nFile Descriptors:\n";
@@ -47,7 +56,7 @@ void FileSystem::displayState() {
 
 bool FileSystem::duplicateName(const std::string& name)
 {
-    for (int i = 0; i < file_count; ++i) {
+    for (int i = 0; i < NUM_FILES; ++i) {
         if (fd_table[i].name == name) {
             return true;
         }
@@ -173,15 +182,15 @@ void FileSystem::repair()
         transactionRollback();
     }
 
-    repairInconsistencies();
-    reopenOpenedFiles();
+    // repairInconsistencies();
+    // reopenOpenedFiles();
 
     std::cout << "File system repair completed.\n";
 }
 
-FileCreateStatus FileSystem::create(const std::string &name, uint16_t size)
+FileCreateStatus FileSystem::create(const std::string &name, uint16_t size = 0)
 {
-    if (size > MEMORY_SIZE || size <= 0)
+    if (size > MEMORY_SIZE || size < 0)
         return FILE_CREATE_INVALID_SIZE;
 
     if (file_count >= NUM_FILES)
@@ -218,7 +227,7 @@ FileCreateStatus FileSystem::create(const std::string &name, uint16_t size)
         transaction_log.last_block = current_block;
 
         int next_block = firstFreeBlock();
-        if (i == blocks_needed - 1) {
+        if (i == blocks_needed) {
             fat[current_block] = END_OF_CHAIN; // last block in chain
         } else {
             fat[current_block] = next_block; // link next block
@@ -360,9 +369,28 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_
     FileDescriptor& file = fd_table[fd_index];
 
     int offset = open_file_fd_table[file_idx].offset;
-    if (offset + size > file.size)
+    int new_size = offset + size;
+    if (new_size > file.size)
     {
-        FILE_WRITE_EXCEEDS_FILE_SIZE;
+        // dodac do logow nowy rozmiar, indeks ostatniej j.a. i index nowej j.a.
+        int additional_blocks_needed = (new_size + BLOCK_SIZE - 1) / BLOCK_SIZE -
+                                       (file.size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+        for (int i = 0; i < additional_blocks_needed; ++i)
+        {
+            int new_block = firstFreeBlock();
+            if (new_block == -1)
+                return FILE_WRITE_NO_SPACE;
+
+            int last_block = file.starting_block;
+            while (fat[last_block] != END_OF_CHAIN)
+                last_block = fat[last_block];
+
+            fat[last_block] = new_block;
+            fat[new_block] = END_OF_CHAIN;
+        }
+
+        file.size = new_size;
     }
 
     int bytes_to_write = size;

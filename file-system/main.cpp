@@ -5,7 +5,7 @@ int main() {
     FileSystem fs;
 
     std::cout << "Creating files:\n";
-    if (fs.create("file1", 8) != FILE_CREATE_SUCCESS) {
+    if (fs.create("file1", 40) != FILE_CREATE_SUCCESS) {
         std::cout << "Error while creating 'file1'\n";
     } else {
         std::cout << "File 'file1' created successfully\n";
@@ -17,10 +17,16 @@ int main() {
         std::cout << "File 'file2' created successfully\n";
     }
 
-    if (fs.create("file3", 128) != FILE_CREATE_SUCCESS) {
-        std::cout << "Error while creating 'file3'\n";
+    if (fs.create("file3", 27) != FILE_CREATE_SUCCESS) {
+        std::cout << "Error while creating 'file2'\n";
     } else {
         std::cout << "File 'file3' created successfully\n";
+    }
+
+    if (fs.create("file4", 128) != FILE_CREATE_SUCCESS) {
+        std::cout << "Error while creating 'file3'\n";
+    } else {
+        std::cout << "File 'file4' created successfully\n";
     }
 
     fs.displayState();
@@ -41,7 +47,7 @@ int main() {
     fs.displayState();
 
     std::cout << "\nWriting to file 'file1':\n";
-    char buffer1[] = "Hello, FileSystem!";
+    char buffer1[] = "Hello, FileSystem!, my name is kacper and i eat a lot of protein.";
     if (fs.write("file1", buffer1, sizeof(buffer1)) == FILE_WRITE_SUCCESS) {
         std::cout << "Data written to 'file1'\n";
     } else {
@@ -51,6 +57,8 @@ int main() {
     fs.displayState();
 
     std::cout << "\nReading from file 'file1':\n";
+    int status = fs.close("file1");
+    status = fs.open("file1");
     char read_buffer1[50] = {0};
     if (fs.read("file1", read_buffer1, sizeof(read_buffer1)) == FILE_READ_SUCCESS) {
         std::cout << "Data read from 'file1': " << read_buffer1 << "\n";
