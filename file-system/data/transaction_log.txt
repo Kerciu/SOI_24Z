@@ -1,0 +1,5 @@
+In Progress: false
+File Index: 1
+New Size: 66
+Last Valid Block: 4
+First New Block: 10

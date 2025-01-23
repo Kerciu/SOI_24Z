@@ -50,12 +50,11 @@ void FileSystem::transactionRollback()
 
 void FileSystem::repair()
 {
-    std::cout << "Repairing file system...\n";
-
     if (transaction_log.in_progress) {
+        std::cout << "Repairing file system...\n";
         std::cout << "Transaction in progress, attempting rollback...\n";
 
         transactionRollback();
+        std::cout << "File system repair completed.\n";
     }
-    std::cout << "File system repair completed.\n";
 }

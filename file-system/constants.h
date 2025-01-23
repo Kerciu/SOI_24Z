@@ -18,22 +18,22 @@ constexpr int MAX_NAME_SIZE = 10;
 constexpr int MIN_NAME_SIZE = 1;
 
 struct FileDescriptor {
-    char name[MAX_NAME_SIZE];
+    std::string name;
     int16_t starting_block;
-    uint16_t size;
+    int16_t size;
 };
 
 struct OpenedFile {
     int16_t idx;        // idx of opened file descriptor
-    uint16_t offset;     // bytes of read file contents
+    int16_t offset;     // bytes of read file contents
 };
 
 struct TransactionLog {
     bool in_progress;
-    uint8_t file_idx;
-    int new_size;
-    uint8_t last_valid_block;
-    uint8_t first_new_block;
+    int16_t file_idx;
+    int16_t new_size;
+    int16_t last_valid_block;
+    int16_t first_new_block;
 };
 
 typedef enum {

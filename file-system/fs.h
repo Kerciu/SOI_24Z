@@ -12,10 +12,10 @@ class FileSystem {
         int16_t fat[NUM_BLOCKS];
 
         FileDescriptor fd_table[NUM_FILES];
-        uint8_t file_count;
+        int16_t file_count;
 
         OpenedFile open_file_fd_table[NUM_OPENED_FILES];      // idx of opened file
-        uint8_t opened_file_count;
+        int16_t opened_file_count;
 
         TransactionLog transaction_log;
 
@@ -52,10 +52,10 @@ class FileSystem {
         FileSystem();
         void displayState();
 
-        FileCreateStatus create(const std::string &name, uint16_t size);
+        FileCreateStatus create(const std::string &name, int16_t size);
         FileOpenStatus open(const std::string& name);
         FileCloseStatus close(const std::string& name);
-        FileReadStatus read(const std::string& name, char* buffer, uint16_t size);
-        FileWriteStatus write(const std::string& name, char* buffer, uint16_t size);
+        FileReadStatus read(const std::string& name, char* buffer, int16_t size);
+        FileWriteStatus write(const std::string& name, char* buffer, int16_t size);
         FileDeleteStatus delete_(const std::string& name);     // delete is a c++ keyword
 };

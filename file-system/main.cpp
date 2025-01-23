@@ -17,7 +17,7 @@ int main() {
         std::cout << "File 'file2' created successfully\n";
     }
 
-    if (fs.create("file3", 27) != FILE_CREATE_SUCCESS) {
+    if (fs.create("file6", 27) != FILE_CREATE_SUCCESS) {
         std::cout << "Error while creating 'file2'\n";
     } else {
         std::cout << "File 'file3' created successfully\n";

@@ -1,13 +1,8 @@
 #include "fs.h"
 
 FileDescriptor emptyFileDescriptor() {
-    FileDescriptor fd;
-    std::memset(fd.name, 0, MAX_NAME_SIZE);
-    fd.starting_block = -1;
-    fd.size = 0;
-    return fd;
+    return {"", -1, -1};
 }
-
 
 FileSystem::FileSystem()
 {
@@ -30,12 +25,19 @@ FileSystem::FileSystem()
     }
 
     opened_file_count = 0;
-    transaction_log.in_progress = false;
-    saveToDisk();
+    transaction_log = {
+        .in_progress = false,
+        .file_idx = -1,
+        .new_size = -1,
+        .last_valid_block = -1,
+        .first_new_block = -1,
+    };
+
     displayInitialVals();
+    saveToDisk();
 }
 
-FileCreateStatus FileSystem::create(const std::string &name, uint16_t size = 0)
+FileCreateStatus FileSystem::create(const std::string &name, int16_t size = 0)
 {
     if (size > MEMORY_SIZE || size < 0)
         return FILE_CREATE_INVALID_SIZE;
@@ -85,13 +87,11 @@ FileCreateStatus FileSystem::create(const std::string &name, uint16_t size = 0)
     }
 
     // add new file to file descriptor table
-    strncpy(fd_table[file_count].name, name.c_str(), MAX_NAME_SIZE - 1);
-    fd_table[file_count].name[MAX_NAME_SIZE - 1] = '\0';
-    fd_table[file_count].starting_block = starting_block;
-    fd_table[file_count].size = size;
+    fd_table[file_count] = {name, starting_block, size};
     file_count++;
 
     transaction_log.in_progress = false;
+    saveToDisk();
 
     return FILE_CREATE_SUCCESS;
 }
@@ -137,7 +137,7 @@ FileCloseStatus FileSystem::close(const std::string& name)
     return FILE_CLOSE_SUCCESS;
 }
 
-FileReadStatus FileSystem::read(const std::string& name, char* buffer, uint16_t size)
+FileReadStatus FileSystem::read(const std::string& name, char* buffer, int16_t size)
 {
     int file_idx = findFileIndexByName(name);
 
@@ -198,7 +198,7 @@ FileReadStatus FileSystem::read(const std::string& name, char* buffer, uint16_t 
     return FILE_READ_SUCCESS;
 }
 
-FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_t size)
+FileWriteStatus FileSystem::write(const std::string& name, char* buffer, int16_t size)
 {
     int file_idx = findFileIndexByName(name);
 
@@ -221,7 +221,6 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_
         transaction_log.last_valid_block = file.starting_block;
         transaction_log.first_new_block = -1;
 
-        // dodac do logow nowy rozmiar, indeks ostatniej j.a. i index nowej j.a.
         int additional_blocks_needed = (new_size + BLOCK_SIZE - 1) / BLOCK_SIZE -
                                        (file.size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
@@ -285,6 +284,7 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_
     }
 
     open_file_fd_table[file_idx].offset += size;
+    saveToDisk();
 
     return FILE_WRITE_SUCCESS;
 }
@@ -322,6 +322,7 @@ FileDeleteStatus FileSystem::delete_(const std::string& name)
     }
 
     transaction_log.in_progress = false;
+    saveToDisk();
 
     return FILE_DELETE_SUCCESS;
 }
