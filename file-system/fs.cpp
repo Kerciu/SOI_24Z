@@ -4,15 +4,23 @@
 
 FileSystem::FileSystem()
 {
-    std::memset(memory, 0, sizeof(memory));
-    std::fill(fat, fat + NUM_BLOCKS, FREE_BLOCK);
-    for (int i = 0; i < NUM_FILES; ++i) {
-        fd_table[i] = {"", -1, 0};
+    try {
+        restoreFromDisk();
+        repair();
+    } catch (const std::exception& e)
+    {
+        std::cout << "Error while restoring data from disk: " << e.what() << ", setting default values\n";
+        std::memset(memory, 0, sizeof(memory));
+        std::fill(fat, fat + NUM_BLOCKS, FREE_BLOCK);
+        for (int i = 0; i < NUM_FILES; ++i) {
+            fd_table[i] = {"", -1, 0};
+        }
+        file_count = 0;
     }
+
     for (int i = 0; i < NUM_OPENED_FILES; ++i) {
         open_file_fd_table[i] = {NO_OPENED_FILE, 0};
     }
-    file_count = 0;
     opened_file_count = 0;
 
     transaction_log.in_progress = false;
@@ -52,6 +60,69 @@ void FileSystem::displayState() {
             }
         }
     }
+}
+
+void FileSystem::saveToDisk() {
+    saveFATToDisk();
+    saveFileDescriptorsToDisk();
+    saveTransactionLogsToDisk();
+    saveFileCountToDisk();
+}
+
+void FileSystem::restoreFromDisk()
+{
+    restoreFATFromDisk();
+    restoreFileDescriptorsFromDisk();
+    restoreTransactionLogsFromDisk();
+    restoreFileCountFromDisk();
+}
+
+void FileSystem::saveFATToDisk() {
+    std::ofstream fat_file("fat.dat", std::ios::binary);
+    fat_file.write(reinterpret_cast<char*>(fat), sizeof(fat));
+    fat_file.close();
+}
+
+void FileSystem::saveFileDescriptorsToDisk() {
+    std::ofstream file_desc_file("file_descriptors.dat", std::ios::binary);
+    file_desc_file.write(reinterpret_cast<char*>(&fd_table), sizeof(fd_table));
+    file_desc_file.close();
+}
+
+void FileSystem::saveTransactionLogsToDisk() {
+    std::ofstream log_file("transaction_log.dat", std::ios::binary);
+    log_file.write(reinterpret_cast<char*>(&transaction_log), sizeof(transaction_log));
+    log_file.close();
+}
+
+void FileSystem::saveFileCountToDisk() {
+    std::ofstream file_count_file("file_count.dat", std::ios::binary);
+    file_count_file.write(reinterpret_cast<char*>(&file_count), sizeof(file_count));
+    file_count_file.close();
+}
+
+void FileSystem::restoreFATFromDisk() {
+    std::ifstream fat_file("fat.dat", std::ios::binary);
+    fat_file.read(reinterpret_cast<char*>(fat), sizeof(fat));
+    fat_file.close();
+}
+
+void FileSystem::restoreFileDescriptorsFromDisk() {
+    std::ifstream file_desc_file("file_descriptors.dat", std::ios::binary);
+    file_desc_file.read(reinterpret_cast<char*>(&fd_table), sizeof(fd_table));
+    file_desc_file.close();
+}
+
+void FileSystem::restoreTransactionLogsFromDisk() {
+    std::ifstream log_file("transaction_log.dat", std::ios::binary);
+    log_file.read(reinterpret_cast<char*>(&transaction_log), sizeof(transaction_log));
+    log_file.close();
+}
+
+void FileSystem::restoreFileCountFromDisk() {
+    std::ifstream file_count_file("file_count.dat", std::ios::binary);
+    file_count_file.read(reinterpret_cast<char*>(&file_count), sizeof(file_count));
+    file_count_file.close();
 }
 
 bool FileSystem::duplicateName(const std::string& name)

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <cstdint>
 #include <cmath>
+#include <fstream>
 #include "constants.h"
 
 class FileSystem {
@@ -32,9 +33,22 @@ class FileSystem {
 
         int findOpenFileIndexByName(const std::string &name);
 
+        void saveFATToDisk();
+        void saveFileDescriptorsToDisk();
+        void saveTransactionLogsToDisk();
+        void saveFileCountToDisk();
+
+        void restoreFATFromDisk();
+        void restoreFileDescriptorsFromDisk();
+        void restoreTransactionLogsFromDisk();
+        void restoreFileCountFromDisk();
+
     public:
         FileSystem();
         void displayState();
+
+        void saveToDisk();
+        void restoreFromDisk();
 
         void repair();
         FileCreateStatus create(const std::string &name, uint16_t size);
