@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++11
 
 TARGET = fs
 
-SRCS = main.cpp fs.cpp
+SRCS = main.cpp fs.cpp persistency.cpp debug.cpp misc.cpp repair.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 

@@ -43,14 +43,15 @@ class FileSystem {
         void restoreTransactionLogsFromDisk();
         void restoreFileCountFromDisk();
 
+        void saveToDisk();
+        void restoreFromDisk();
+        void repair();
+
+        void displayInitialVals();
     public:
         FileSystem();
         void displayState();
 
-        void saveToDisk();
-        void restoreFromDisk();
-
-        void repair();
         FileCreateStatus create(const std::string &name, uint16_t size);
         FileOpenStatus open(const std::string& name);
         FileCloseStatus close(const std::string& name);

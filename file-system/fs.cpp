@@ -1,6 +1,13 @@
 #include "fs.h"
 
-#define EMPTY_FD {"", -1, 0}
+FileDescriptor emptyFileDescriptor() {
+    FileDescriptor fd;
+    std::memset(fd.name, 0, MAX_NAME_SIZE);
+    fd.starting_block = -1;
+    fd.size = 0;
+    return fd;
+}
+
 
 FileSystem::FileSystem()
 {
@@ -13,7 +20,7 @@ FileSystem::FileSystem()
         std::memset(memory, 0, sizeof(memory));
         std::fill(fat, fat + NUM_BLOCKS, FREE_BLOCK);
         for (int i = 0; i < NUM_FILES; ++i) {
-            fd_table[i] = {"", -1, 0};
+            fd_table[i] = emptyFileDescriptor();
         }
         file_count = 0;
     }
@@ -21,239 +28,11 @@ FileSystem::FileSystem()
     for (int i = 0; i < NUM_OPENED_FILES; ++i) {
         open_file_fd_table[i] = {NO_OPENED_FILE, 0};
     }
+
     opened_file_count = 0;
-
     transaction_log.in_progress = false;
-}
-
-void FileSystem::displayState() {
-    std::cout << "File System State:\n";
-
-    bool startOfFile = false;
-    std::cout << "FAT Table:\n";
-    for (int i = 0; i < NUM_BLOCKS; ++i) {
-        std::cout << "Block " << i << ": " << fat[i];
-        for (int j = 0; j < NUM_FILES; ++j) {
-            if (fd_table[j].starting_block == i) {
-                std::cout << " -> Start of file " << fd_table[j].name << "with size of " << fd_table[j].size << "\n";
-                startOfFile = true;
-            }
-        }
-        if (!startOfFile) std::cout << "\n";
-        startOfFile = false;
-    }
-
-    std::cout << "\nFile Descriptors:\n";
-    for (int i = 0; i < file_count; ++i) {
-        std::cout << " - " << fd_table[i].name
-                  << ": Start=" << fd_table[i].starting_block
-                  << ", Size=" << fd_table[i].size << "\n";
-    }
-
-    std::cout << "\nOpened Files:\n";
-    for (int i = 0; i < NUM_OPENED_FILES; ++i) {
-        if (open_file_fd_table[i].idx != NO_OPENED_FILE) {
-            int idx = open_file_fd_table[i].idx;
-            if (idx >= 0 && idx < file_count) {
-                FileDescriptor& fd = fd_table[idx];
-                std::cout << " - " << fd.name << ": Offset=" << open_file_fd_table[i].offset << "\n";
-            }
-        }
-    }
-}
-
-void FileSystem::saveToDisk() {
-    saveFATToDisk();
-    saveFileDescriptorsToDisk();
-    saveTransactionLogsToDisk();
-    saveFileCountToDisk();
-}
-
-void FileSystem::restoreFromDisk()
-{
-    restoreFATFromDisk();
-    restoreFileDescriptorsFromDisk();
-    restoreTransactionLogsFromDisk();
-    restoreFileCountFromDisk();
-}
-
-void FileSystem::saveFATToDisk() {
-    std::ofstream fat_file("fat.dat", std::ios::binary);
-    fat_file.write(reinterpret_cast<char*>(fat), sizeof(fat));
-    fat_file.close();
-}
-
-void FileSystem::saveFileDescriptorsToDisk() {
-    std::ofstream file_desc_file("file_descriptors.dat", std::ios::binary);
-    file_desc_file.write(reinterpret_cast<char*>(&fd_table), sizeof(fd_table));
-    file_desc_file.close();
-}
-
-void FileSystem::saveTransactionLogsToDisk() {
-    std::ofstream log_file("transaction_log.dat", std::ios::binary);
-    log_file.write(reinterpret_cast<char*>(&transaction_log), sizeof(transaction_log));
-    log_file.close();
-}
-
-void FileSystem::saveFileCountToDisk() {
-    std::ofstream file_count_file("file_count.dat", std::ios::binary);
-    file_count_file.write(reinterpret_cast<char*>(&file_count), sizeof(file_count));
-    file_count_file.close();
-}
-
-void FileSystem::restoreFATFromDisk() {
-    std::ifstream fat_file("fat.dat", std::ios::binary);
-    fat_file.read(reinterpret_cast<char*>(fat), sizeof(fat));
-    fat_file.close();
-}
-
-void FileSystem::restoreFileDescriptorsFromDisk() {
-    std::ifstream file_desc_file("file_descriptors.dat", std::ios::binary);
-    file_desc_file.read(reinterpret_cast<char*>(&fd_table), sizeof(fd_table));
-    file_desc_file.close();
-}
-
-void FileSystem::restoreTransactionLogsFromDisk() {
-    std::ifstream log_file("transaction_log.dat", std::ios::binary);
-    log_file.read(reinterpret_cast<char*>(&transaction_log), sizeof(transaction_log));
-    log_file.close();
-}
-
-void FileSystem::restoreFileCountFromDisk() {
-    std::ifstream file_count_file("file_count.dat", std::ios::binary);
-    file_count_file.read(reinterpret_cast<char*>(&file_count), sizeof(file_count));
-    file_count_file.close();
-}
-
-bool FileSystem::duplicateName(const std::string& name)
-{
-    for (int i = 0; i < NUM_FILES; ++i) {
-        if (fd_table[i].name == name) {
-            return true;
-        }
-    }
-    return false;
-}
-
-int FileSystem::countFreeBlocks()
-{
-    int free_blocks = 0;
-    for (int i = 0; i < NUM_BLOCKS; ++i) {
-        if (fat[i] == FREE_BLOCK) {
-            ++free_blocks;
-        }
-    }
-    return free_blocks;
-}
-
-int FileSystem::firstFreeBlock()
-{
-    for (int i = 0; i < NUM_BLOCKS; ++i) {
-        if (fat[i] == FREE_BLOCK) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-void FileSystem::markBlockAsUsed(int block_idx)
-{
-    fat[block_idx] = END_OF_CHAIN;
-}
-
-int FileSystem::findFileIndexByName(const std::string& name)
-{
-    for (int i = 0; i < file_count; ++i) {
-        if (fd_table[i].name == name) {
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-int FileSystem::findOpenFileIndexByName(const std::string& name)
-{
-    for (int i = 0; i < NUM_FILES; ++i) {
-        if (open_file_fd_table[i].idx != NO_OPENED_FILE) {
-            int file_index = open_file_fd_table[i].idx;
-            if (file_index >= 0 && file_index < file_count && fd_table[file_index].name == name) {
-                return i;
-            }
-        }
-    }
-    return -1;
-}
-
-int FileSystem::findOpenFileFreeSlot(int file_idx)
-{
-    for (int i = 0; i < NUM_FILES; ++ i)
-    {
-        if (open_file_fd_table[i].idx == NO_OPENED_FILE)
-            return i;
-    }
-
-    return -1;
-}
-
-void FileSystem::restoreOriginalFileSize()
-{
-    if (transaction_log.file_idx != -1 && transaction_log.last_valid_block != -1) {
-        fd_table[transaction_log.file_idx].size =
-            (transaction_log.last_valid_block + 1) * BLOCK_SIZE;
-    }
-}
-
-void FileSystem::clearNewAllocatedBlocks()
-{
-    if (transaction_log.first_new_block != -1) {
-        int block_idx = transaction_log.first_new_block;
-        while (block_idx != -1 && block_idx != END_OF_CHAIN) {
-            int next_block = fat[block_idx];
-            fat[block_idx] = FREE_BLOCK;
-            block_idx = next_block;
-        }
-    }
-}
-
-void FileSystem::clearTransactionLog()
-{
-    transaction_log.in_progress = false;
-    transaction_log.file_idx = -1;
-    transaction_log.new_size = 0;
-    transaction_log.last_valid_block = -1;
-    transaction_log.first_new_block = -1;
-}
-
-void FileSystem::transactionRollback()
-{
-    if (!transaction_log.in_progress)
-        return;
-
-    // restore original file size
-    restoreOriginalFileSize();
-
-    // clear new allocated blocks
-    clearNewAllocatedBlocks();
-
-    // restore end of chain for the last valid block
-    if (transaction_log.last_valid_block != -1) {
-        fat[transaction_log.last_valid_block] = END_OF_CHAIN;
-    }
-
-    clearTransactionLog();
-}
-
-void FileSystem::repair()
-{
-    std::cout << "Repairing file system...\n";
-
-    if (transaction_log.in_progress) {
-        std::cout << "Transaction in progress, attempting rollback...\n";
-
-        transactionRollback();
-    }
-    std::cout << "File system repair completed.\n";
+    saveToDisk();
+    displayInitialVals();
 }
 
 FileCreateStatus FileSystem::create(const std::string &name, uint16_t size = 0)
@@ -306,7 +85,11 @@ FileCreateStatus FileSystem::create(const std::string &name, uint16_t size = 0)
     }
 
     // add new file to file descriptor table
-    fd_table[file_count++] = {name, starting_block, size};
+    strncpy(fd_table[file_count].name, name.c_str(), MAX_NAME_SIZE - 1);
+    fd_table[file_count].name[MAX_NAME_SIZE - 1] = '\0';
+    fd_table[file_count].starting_block = starting_block;
+    fd_table[file_count].size = size;
+    file_count++;
 
     transaction_log.in_progress = false;
 
@@ -330,14 +113,8 @@ FileOpenStatus FileSystem::open(const std::string& name)
     if (free_slot == -1)
         return FILE_OPEN_NO_SPACE_FOR_OPEN_FILES;
 
-    transaction_log.in_progress = true;
-    transaction_log.file_idx = file_idx;
-    transaction_log.last_valid_block = -1;
-
     open_file_fd_table[free_slot] = {file_idx, 0};
     ++opened_file_count;
-
-    transaction_log.in_progress = false;
 
     return FILE_OPEN_SUCCESS;
 }
@@ -354,14 +131,8 @@ FileCloseStatus FileSystem::close(const std::string& name)
         return FILE_CLOSE_NOT_OPENED;
     }
 
-    transaction_log.in_progress = true;
-    transaction_log.file_idx = file_index;
-    transaction_log.last_valid_block = open_file_fd_table[file_index].offset;
-
     open_file_fd_table[file_index] = {NO_OPENED_FILE, 0};
     --opened_file_count;
-
-    transaction_log.in_progress = false;
 
     return FILE_CLOSE_SUCCESS;
 }
@@ -457,9 +228,10 @@ FileWriteStatus FileSystem::write(const std::string& name, char* buffer, uint16_
         for (int i = 0; i < additional_blocks_needed; ++i)
         {
             int new_block = firstFreeBlock();
-            if (new_block == -1)
+            if (new_block == -1) {
                 transactionRollback();
                 return FILE_WRITE_NO_SPACE;
+            }
 
             int last_block = file.starting_block;
             while (fat[last_block] != END_OF_CHAIN)
@@ -540,7 +312,7 @@ FileDeleteStatus FileSystem::delete_(const std::string& name)
     }
     --file_count;
 
-    fd_table[file_count] = EMPTY_FD;
+    fd_table[file_count] = emptyFileDescriptor();
 
     for (int i = 0; i < opened_file_count; i++) {
         if (open_file_fd_table[i].idx == file_idx) {

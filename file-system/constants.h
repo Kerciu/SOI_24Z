@@ -18,7 +18,7 @@ constexpr int MAX_NAME_SIZE = 10;
 constexpr int MIN_NAME_SIZE = 1;
 
 struct FileDescriptor {
-    std::string name;
+    char name[MAX_NAME_SIZE];
     int16_t starting_block;
     uint16_t size;
 };
