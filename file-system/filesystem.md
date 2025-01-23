@@ -1,5 +1,3 @@
-Jasne, oto sprawozdanie sformatowane tak, aby kod C++ i pseudokod były czytelnie przedstawione:
-
 # System Plików
 
 ## Systemy Operacyjne
